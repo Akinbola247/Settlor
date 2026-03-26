@@ -9,9 +9,20 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@circle-fin/adapter-circle-wallets": "^1.2.2",
+    "@circle-fin/adapter-solana-kit": "^1.4.1",
+    "@circle-fin/adapter-viem-v2": "^1.7.0",
+    "@circle-fin/app-kit": "^1.1.0",
+    "@circle-fin/w3s-pw-web-sdk": "^1.1.11",
+    "@solana/kit": "^6.5.0",
+    "@solana/web3.js": "^1.98.4",
+    "cookies-next": "^6.1.1",
+    "fs": "^0.0.1-security",
     "next": "16.1.6",
+    "pino": "^10.3.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "viem": "^2.47.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,5 +33,6 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
