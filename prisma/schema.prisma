@@ -33,6 +33,8 @@ model Session {
   user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   circleUserTokenEnc     String
   circleEncryptionKeyEnc String
+  circleRefreshTokenEnc  String?
+  circleDeviceId         String?
   expiresAt              DateTime
   createdAt              DateTime @default(now())
 
