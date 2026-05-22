@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import IPayXLogo from "@/components/brand/IPayXLogo";
 import { useCircleLoginBoot } from "@/components/auth/CircleLoginBoot";
 
 export default function LoginPage() {
@@ -21,12 +22,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="gradient-hero flex flex-col justify-between p-10 text-white lg:p-14">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-brand)] text-sm font-bold">
-            ₿
-          </span>
-          <span className="font-serif text-2xl font-bold">iPayX</span>
-        </Link>
+        <IPayXLogo href="/" variant="light" size="lg" className="[&_span]:text-2xl" />
         <div>
           <h1 className="font-serif text-4xl font-bold leading-tight lg:text-5xl">
             Take control of your USDC payments.

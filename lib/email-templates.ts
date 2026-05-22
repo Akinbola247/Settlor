@@ -9,7 +9,13 @@ type TemplateInput = {
   dueDate: string | null;
 };
 
+function brandLogoUrl(): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/ipayx-icon-orange.svg`;
+}
+
 function layout(title: string, body: string) {
+  const logoUrl = brandLogoUrl();
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
@@ -18,8 +24,15 @@ function layout(title: string, body: string) {
     <tr><td align="center">
       <table width="100%" style="max-width:520px;background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
         <tr><td style="background:#0f172a;padding:24px 28px;">
-          <span style="font-size:20px;font-weight:700;color:#fff;">iPayX</span>
-          <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;">Cross-chain USDC invoicing</p>
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="vertical-align:middle;padding-right:12px;">
+              <img src="${logoUrl}" alt="iPayX" width="40" height="40" style="display:block;border-radius:10px;" />
+            </td>
+            <td style="vertical-align:middle;">
+              <span style="font-size:20px;font-weight:700;color:#fff;">iPayX</span>
+              <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">Cross-chain USDC invoicing</p>
+            </td>
+          </tr></table>
         </td></tr>
         <tr><td style="padding:28px;">
           <h1 style="margin:0 0 16px;font-size:22px;color:#0f172a;">${title}</h1>

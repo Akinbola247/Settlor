@@ -17,6 +17,10 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "iPayX — Cross-chain USDC invoicing",
   description: "Send invoices, get paid in USDC from any chain. Unified balance on Arc.",
+  icons: {
+    icon: "/ipayx-icon-orange.svg",
+    apple: "/ipayx-icon-orange.svg",
+  },
 };
 
 export default function RootLayout({

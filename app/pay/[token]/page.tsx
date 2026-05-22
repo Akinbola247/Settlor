@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import IPayXLogo from "@/components/brand/IPayXLogo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { InvoiceDto } from "@/lib/types";
@@ -71,12 +72,7 @@ export default function PublicPayPage() {
   return (
     <div className="min-h-screen bg-[var(--color-surface)] py-12 px-4">
       <div className="mx-auto max-w-lg">
-        <Link href="/" className="mb-8 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand)] text-xs text-white font-bold">
-            ₿
-          </span>
-          <span className="font-serif text-lg font-bold">iPayX</span>
-        </Link>
+        <IPayXLogo href="/" size="sm" className="mb-8" />
 
         <div className="card p-8 shadow-lg">
           <div className="flex items-start justify-between">

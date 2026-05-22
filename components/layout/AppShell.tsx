@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { isNavItemActive } from "@/lib/nav-active";
 import { ACCOUNT_NAV, COMING_SOON_NAV, MAIN_NAV, QUICK_ACTIONS } from "./sidebar-nav";
+import IPayXLogo from "@/components/brand/IPayXLogo";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import { IconLogout } from "./icons";
 
@@ -43,17 +44,11 @@ function AppShellInner({
   return (
     <div className="flex min-h-screen bg-[var(--color-surface)]">
       <aside className="sidebar flex w-[260px] shrink-0 flex-col border-r border-[var(--color-border)] bg-white">
-        <Link
+        <IPayXLogo
           href="/dashboard"
-          className="flex h-16 items-center gap-2.5 border-b border-[var(--color-border)] px-5 transition hover:bg-slate-50"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-brand)] text-sm font-bold text-white">
-            ₿
-          </span>
-          <span className="font-serif text-xl font-bold tracking-tight text-[var(--color-ink)]">
-            iPayX
-          </span>
-        </Link>
+          size="md"
+          className="h-16 border-b border-[var(--color-border)] px-5 hover:bg-slate-50"
+        />
 
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           <p className="sidebar-section-title">Main menu</p>
