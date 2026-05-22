@@ -1,0 +1,19 @@
+# Optional PostgreSQL for production / multi-user dev (recommended over SQLite)
+# Start: docker compose up -d
+# Then set DATABASE_URL in .env.local and run: npm run db:push
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ipayx
+      POSTGRES_PASSWORD: ipayx
+      POSTGRES_DB: ipayx
+    ports:
+      - "5432:5432"
+    volumes:
+      - ipayx_pg_data:/var/lib/postgresql/data
+
+volumes:
+  ipayx_pg_data:

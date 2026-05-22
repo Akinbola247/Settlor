@@ -1,0 +1,83 @@
+// Copy to schema.prisma (replace sqlite datasource) when using Docker Postgres:
+//   datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+//
+// DATABASE_URL="postgresql://ipayx:ipayx@localhost:5432/ipayx?schema=public"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?
+  displayName   String?
+  walletAddress String    @unique
+  walletId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions         Session[]
+  invoicesSent     Invoice[] @relation("InvoiceCreator")
+  invoicesReceived Invoice[] @relation("InvoiceRecipient")
+
+  @@index([email])
+}
+
+model Session {
+  id                     String   @id @default(cuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circleUserTokenEnc     String
+  circleEncryptionKeyEnc String
+  expiresAt              DateTime
+  createdAt              DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Invoice {
+  id               String        @id @default(cuid())
+  invoiceNumber    String        @unique
+  status           String        @default("pending")
+  creatorId        String
+  creator          User          @relation("InvoiceCreator", fields: [creatorId], references: [id])
+  creatorAddress   String
+  creatorName      String?
+  recipientAddress String
+  recipientName    String
+  recipientEmail   String?
+  recipientUserId  String?
+  recipientUser    User?         @relation("InvoiceRecipient", fields: [recipientUserId], references: [id])
+  dueDate          DateTime?
+  notes            String?
+  txHash           String?
+  paidAt           DateTime?
+  publicToken      String        @unique @default(cuid())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  items            InvoiceItem[]
+
+  @@index([creatorAddress])
+  @@index([recipientAddress])
+  @@index([recipientEmail])
+  @@index([recipientUserId])
+  @@index([status])
+  @@index([publicToken])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unitPrice   Float
+  sortOrder   Int     @default(0)
+
+  @@index([invoiceId])
+}
