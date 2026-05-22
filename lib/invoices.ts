@@ -67,21 +67,20 @@ function toDto(
 
 const invoiceInclude = { items: { orderBy: { sortOrder: "asc" as const } } };
 
-function sqlInt(value: unknown): number {
-  if (value == null) return 0;
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "number") return value;
-  const n = parseInt(String(value), 10);
-  return Number.isNaN(n) ? 0 : n;
-}
+const INVOICE_NUMBER_RE = /^INV-(\d+)$/;
 
 async function nextInvoiceNumber(): Promise<string> {
-  const rows = await prisma.$queryRaw<{ maxNum: unknown }[]>`
-    SELECT MAX(CAST(SUBSTR(invoiceNumber, 5) AS INTEGER)) as maxNum
-    FROM Invoice
-    WHERE invoiceNumber GLOB 'INV-[0-9]*'
-  `;
-  const maxNum = sqlInt(rows[0]?.maxNum);
+  const invoices = await prisma.invoice.findMany({
+    where: { invoiceNumber: { startsWith: "INV-" } },
+    select: { invoiceNumber: true },
+  });
+
+  let maxNum = 0;
+  for (const { invoiceNumber } of invoices) {
+    const match = invoiceNumber.match(INVOICE_NUMBER_RE);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+
   return `INV-${String(maxNum + 1).padStart(4, "0")}`;
 }
 
