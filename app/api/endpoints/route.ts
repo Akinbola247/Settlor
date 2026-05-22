@@ -1,12 +1,10 @@
-// app/api/endpoints/route.ts
 import { NextResponse } from "next/server";
-
-const CIRCLE_BASE_URL =
-  process.env.NEXT_PUBLIC_CIRCLE_BASE_URL ?? "https://api.circle.com";
-const CIRCLE_API_KEY = process.env.CIRCLE_API_KEY as string;
+import { getAuthSession } from "@/lib/auth";
+import { circleFetch, circleErrorMessage, getWalletBalances, extractUsdcBalance } from "@/lib/circle";
 
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession();
     const body = await request.json();
     const { action, ...params } = body ?? {};
 
@@ -14,149 +12,123 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing action" }, { status: 400 });
     }
 
-    switch (action) {
-      case "createDeviceToken": {
-        const { deviceId } = params;
-        if (!deviceId) {
-          return NextResponse.json(
-            { error: "Missing deviceId" },
-            { status: 400 },
-          );
-        }
-
-        const response = await fetch(
-          `${CIRCLE_BASE_URL}/v1/w3s/users/social/token`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${CIRCLE_API_KEY}`,
-            },
-            body: JSON.stringify({
-              idempotencyKey: crypto.randomUUID(),
-              deviceId,
-            }),
-          },
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return NextResponse.json(data, { status: response.status });
-        }
-
-        // Returns: { deviceToken, deviceEncryptionKey }
-        return NextResponse.json(data.data, { status: 200 });
+    if (action === "createDeviceToken") {
+      const { deviceId } = params;
+      if (!deviceId) {
+        return NextResponse.json({ error: "Missing deviceId" }, { status: 400 });
       }
 
-      case "initializeUser": {
-        const { userToken } = params;
-        if (!userToken) {
-          return NextResponse.json(
-            { error: "Missing userToken" },
-            { status: 400 },
-          );
+      const { ok, status, data } = await circleFetch<{ deviceToken: string; deviceEncryptionKey: string }>(
+        "/v1/w3s/users/social/token",
+        {
+          method: "POST",
+          body: {
+            idempotencyKey: crypto.randomUUID(),
+            deviceId,
+          },
         }
+      );
 
-        const response = await fetch(
-          `${CIRCLE_BASE_URL}/v1/w3s/user/initialize`,
+      if (!ok) {
+        return NextResponse.json(
+          { error: circleErrorMessage(data, "Device token failed") },
+          { status }
+        );
+      }
+      return NextResponse.json(data);
+    }
+
+    if (action === "requestEmailOtp") {
+      const { deviceId, email } = params;
+      if (!deviceId || !email) {
+        return NextResponse.json({ error: "Missing deviceId or email" }, { status: 400 });
+      }
+
+      const { ok, status, data } = await circleFetch<{
+        deviceToken: string;
+        deviceEncryptionKey: string;
+        otpToken: string;
+      }>("/v1/w3s/users/email/token", {
+        method: "POST",
+        body: {
+          idempotencyKey: crypto.randomUUID(),
+          deviceId: String(deviceId),
+          email: String(email).trim().toLowerCase(),
+        },
+      });
+
+      if (!ok) {
+        return NextResponse.json(
+          { error: circleErrorMessage(data, "Failed to send verification code") },
+          { status }
+        );
+      }
+      return NextResponse.json(data);
+    }
+
+    const userToken =
+      session?.circleUserToken ?? (params.userToken as string | undefined);
+    if (!userToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    switch (action) {
+      case "initializeUser": {
+        const { ok, status, data } = await circleFetch<{ challengeId: string }>(
+          "/v1/w3s/user/initialize",
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${CIRCLE_API_KEY}`,
-              "X-User-Token": userToken,
-            },
-            body: JSON.stringify({
+            userToken,
+            body: {
               idempotencyKey: crypto.randomUUID(),
               accountType: "SCA",
               blockchains: ["ARC-TESTNET"],
-            }),
-          },
+            },
+          }
         );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          // Pass through Circle error payload (e.g. code 155106: user already initialized)
-          return NextResponse.json(data, { status: response.status });
+        if (!ok) {
+          return NextResponse.json(
+            { ...(typeof data === "object" && data ? data : {}), error: circleErrorMessage(data, "Initialize failed") },
+            { status }
+          );
         }
-
-        // Returns: { challengeId }
-        return NextResponse.json(data.data, { status: 200 });
+        return NextResponse.json(data);
       }
 
       case "listWallets": {
-        const { userToken } = params;
-        if (!userToken) {
+        const { ok, status, data } = await circleFetch<{ wallets: unknown[] }>(
+          "/v1/w3s/wallets",
+          { userToken }
+        );
+        if (!ok) {
           return NextResponse.json(
-            { error: "Missing userToken" },
-            { status: 400 },
+            { error: circleErrorMessage(data, "List wallets failed") },
+            { status }
           );
         }
-
-        const response = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/wallets`, {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-            "content-type": "application/json",
-            Authorization: `Bearer ${CIRCLE_API_KEY}`,
-            "X-User-Token": userToken,
-          },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return NextResponse.json(data, { status: response.status });
-        }
-
-        // Returns: { wallets: [...] }
-        return NextResponse.json(data.data, { status: 200 });
+        return NextResponse.json(data);
       }
 
       case "getTokenBalance": {
-        const { userToken, walletId } = params;
-        if (!userToken || !walletId) {
-          return NextResponse.json(
-            { error: "Missing userToken or walletId" },
-            { status: 400 },
-          );
+        const walletId = params.walletId ?? session?.user.walletId;
+        if (!walletId) {
+          return NextResponse.json({ error: "Missing walletId" }, { status: 400 });
         }
-
-        const response = await fetch(
-          `${CIRCLE_BASE_URL}/v1/w3s/wallets/${walletId}/balances`,
-          {
-            method: "GET",
-            headers: {
-              accept: "application/json",
-              Authorization: `Bearer ${CIRCLE_API_KEY}`,
-              "X-User-Token": userToken,
-            },
-          },
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return NextResponse.json(data, { status: response.status });
+        const balances = await getWalletBalances(userToken, walletId);
+        if (!balances) {
+          return NextResponse.json({ error: "Failed to load balance" }, { status: 500 });
         }
-
-        // Returns: { tokenBalances: [...] }
-        return NextResponse.json(data.data, { status: 200 });
+        return NextResponse.json({
+          tokenBalances: balances,
+          usdc: extractUsdcBalance(balances),
+        });
       }
 
       default:
-        return NextResponse.json(
-          { error: `Unknown action: ${action}` },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
   } catch (error) {
-    console.log("Error in /api/endpoints:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    console.error("Error in /api/endpoints:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
