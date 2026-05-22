@@ -10,6 +10,7 @@ import { AppKit, BridgeChain } from "@circle-fin/app-kit";
 import { createCircleWalletsAdapter } from "@circle-fin/adapter-circle-wallets";
 import { createViemAdapterFromPrivateKey } from "@circle-fin/adapter-viem-v2";
 import type { BridgeProgress, BridgeStep } from "./bridge.types";
+import { getCircleWalletsAdapterOptions } from "@/lib/circle-server-config";
 
 // ─── Platform adapter ─────────────────────────────────────────────────────────
 // A platform-owned EVM wallet used ONLY to poll for mint confirmation on Arc.
@@ -25,9 +26,7 @@ function platformArcAdapter() {
 // Used for outbound transfers: logged-in user's Circle (Arc) wallet → external chain
 
 function circleWalletsAdapter() {
-  const apiKey = process.env.CIRCLE_API_KEY;
-  const entitySecret = process.env.CIRCLE_ENTITY_SECRET;
-  if (!apiKey || !entitySecret) throw new Error("CIRCLE_API_KEY / CIRCLE_ENTITY_SECRET not set");
+  const { apiKey, entitySecret } = getCircleWalletsAdapterOptions();
   return createCircleWalletsAdapter({ apiKey, entitySecret });
 }
 
@@ -83,11 +82,12 @@ export interface OutboundParams {
   toChain: BridgeChain;
   recipientAddress: string;
   amount: string;
-  senderWalletId: string; // Circle wallet ID of the logged-in user
+  /** Arc EVM address (0x…) of the logged-in user's Circle wallet — not the Circle wallet UUID. */
+  senderArcAddress: string;
 }
 
 export async function bridgeOutbound(params: OutboundParams): Promise<BridgeProgress> {
-  const { toChain, recipientAddress, amount, senderWalletId } = params;
+  const { toChain, recipientAddress, amount, senderArcAddress } = params;
 
   const kit = new AppKit();
 
@@ -95,7 +95,7 @@ export async function bridgeOutbound(params: OutboundParams): Promise<BridgeProg
     from: {
       adapter: circleWalletsAdapter(),
       chain: BridgeChain.Arc_Testnet,
-      address: senderWalletId,
+      address: senderArcAddress,
     },
     to: {
       adapter: platformArcAdapter(),

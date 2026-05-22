@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/api/bridge/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { bridgeInbound, bridgeOutbound } from "@/app/lib/bridge.server";
-import { BridgeChain } from "@circle-fin/app-kit";
-import { updateInvoice } from "@/app/lib/invoiceStore";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,76 +7,36 @@ export async function POST(req: NextRequest) {
     const { direction = "inbound", ...params } = body;
 
     if (direction === "inbound") {
-      // ── INBOUND: someone paying (any chain → Arc recipient) ──────────────
-      const {
-        fromChain,
-        recipientArcAddress,
-        amount,
-        senderEvmPrivateKey,
-        senderSolanaPrivateKey,
-        invoiceId, // optional — marks invoice as paid after success
-      } = params;
-
-      if (!fromChain || !recipientArcAddress || !amount) {
-        return NextResponse.json(
-          { error: "Missing: fromChain, recipientArcAddress, amount" },
-          { status: 400 }
-        );
-      }
-
-      if (!Object.values(BridgeChain).includes(fromChain)) {
-        return NextResponse.json({ error: `Unsupported chain: ${fromChain}` }, { status: 400 });
-      }
-
-      const result = await bridgeInbound({
-        fromChain,
-        recipientArcAddress,
-        amount,
-        senderEvmPrivateKey,
-        senderSolanaPrivateKey,
-      });
-
-      // Mark invoice paid if provided
-      if (invoiceId) {
-        const txHash = result.steps?.find((s: any) => s.name === "mint")?.explorerUrl ?? undefined;
-        updateInvoice(invoiceId, {
-          status: "paid",
-          paidAt: new Date().toISOString(),
-          txHash,
-        });
-      }
-
-      return NextResponse.json(result);
+      return NextResponse.json(
+        {
+          error:
+            "Server inbound bridge is disabled. Use the client pay flow at /pay/[token] with MetaMask.",
+        },
+        { status: 410 }
+      );
     }
 
     if (direction === "outbound") {
-      // ── OUTBOUND: Circle wallet user sending Arc USDC → external chain ───
-      const { toChain, recipientAddress, amount, senderWalletId } = params;
-
-      if (!toChain || !recipientAddress || !amount || !senderWalletId) {
-        return NextResponse.json(
-          { error: "Missing: toChain, recipientAddress, amount, senderWalletId" },
-          { status: 400 }
-        );
-      }
-
-      if (!Object.values(BridgeChain).includes(toChain)) {
-        return NextResponse.json({ error: `Unsupported chain: ${toChain}` }, { status: 400 });
-      }
-
-      const result = await bridgeOutbound({
-        toChain,
-        recipientAddress,
-        amount,
-        senderWalletId,
-      });
-
-      return NextResponse.json(result);
+      return NextResponse.json(
+        {
+          error:
+            "Outbound bridge runs in your browser with your Circle wallet. Refresh the page and use Transfer again.",
+        },
+        { status: 410 }
+      );
     }
 
     return NextResponse.json({ error: "direction must be inbound or outbound" }, { status: 400 });
   } catch (err: any) {
     console.error("[/api/bridge]", err);
-    return NextResponse.json({ error: err?.message ?? "Bridge error" }, { status: 500 });
+    const msg = err?.message ?? "Bridge error";
+    const configHint =
+      /entitySecret|CIRCLE_ENTITY_SECRET|CIRCLE_API_KEY/i.test(msg)
+        ? " Check CIRCLE_API_KEY in .env — use the full TEST_API_KEY line from Circle; the 64-char entity secret is parsed automatically."
+        : "";
+    const addressHint = /EVM address/i.test(msg)
+      ? " Ensure your session wallet has a valid 0x address and the recipient is a full EVM address."
+      : "";
+    return NextResponse.json({ error: msg + configHint + addressHint }, { status: 500 });
   }
 }
