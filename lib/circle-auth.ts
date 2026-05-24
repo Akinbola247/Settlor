@@ -33,6 +33,18 @@ function loginRedirectUri(): string {
   return getGoogleRedirectUri();
 }
 
+/** Circle stores provider in localStorage before OAuth redirect; restore if ITP cleared it. */
+function restoreSocialLoginProviderFromUrl(): void {
+  if (typeof window === "undefined") return;
+  if (window.localStorage.getItem("socialLoginProvider")) return;
+  const hash = window.location.hash;
+  if (hash.includes("id_token")) {
+    window.localStorage.setItem("socialLoginProvider", "Google");
+  } else if (hash.includes("access_token")) {
+    window.localStorage.setItem("socialLoginProvider", "Facebook");
+  }
+}
+
 export type WalletInfo = {
   id: string;
   address: string;
@@ -179,10 +191,68 @@ export async function initCircleSdk(
   sdkRef: React.MutableRefObject<W3SSdk | null>,
   onLoginComplete: (result: LoginCompleteResult) => void,
   onError: (msg: string) => void,
-  options?: { forceRefreshDevice?: boolean }
+  options?: { forceRefreshDevice?: boolean; oauthReturn?: boolean }
 ) {
   const { W3SSdk } = await import("@circle-fin/w3s-pw-web-sdk");
-  const { deviceToken, deviceEncryptionKey } = readDeviceCookies();
+  const oauthReturn = options?.oauthReturn ?? false;
+  let { deviceToken, deviceEncryptionKey } = readDeviceCookies();
+
+  const loginCallback = (error: unknown, result: unknown) => {
+    if (error) {
+      const err = error as { message?: string };
+      onError(err.message || "Login failed");
+      return;
+    }
+    const r = result as {
+      userToken?: string;
+      encryptionKey?: string;
+      refreshToken?: string;
+      oAuthInfo?: { socialUserInfo?: { email?: string; name?: string } };
+    };
+    if (!r?.userToken || !r?.encryptionKey) {
+      onError("Login completed without credentials");
+      return;
+    }
+    const social = r.oAuthInfo?.socialUserInfo;
+    onLoginComplete({
+      userToken: r.userToken,
+      encryptionKey: r.encryptionKey,
+      refreshToken: r.refreshToken,
+      profile: {
+        email: social?.email,
+        displayName: social?.name,
+      },
+    });
+  };
+
+  /**
+   * OAuth return: keep the same device token that was used before redirect.
+   * Refreshing here invalidates the token and breaks Circle hash verification.
+   */
+  if (oauthReturn) {
+    if (!deviceToken || !deviceEncryptionKey) {
+      throw new Error(
+        "Sign-in session expired during redirect. Return to Login and try Google again."
+      );
+    }
+
+    restoreSocialLoginProviderFromUrl();
+
+    const sdk = new W3SSdk(
+      {
+        appSettings: { appId: (getCookie("appId") as string) || appId },
+        loginConfigs: {
+          deviceToken,
+          deviceEncryptionKey,
+          google: googleConfig(),
+        },
+      },
+      loginCallback
+    );
+
+    sdkRef.current = sdk;
+    return sdk;
+  }
 
   const sdk = new W3SSdk(
     {
@@ -193,35 +263,12 @@ export async function initCircleSdk(
         google: googleConfig(),
       },
     },
-    (error, result) => {
-      if (error) {
-        const err = error as any;
-        onError(err.message || "Login failed");
-        return;
-      }
-      if (!result?.userToken || !result?.encryptionKey) {
-        onError("Login completed without credentials");
-        return;
-      }
-      const social = (result as { oAuthInfo?: { socialUserInfo?: { email?: string; name?: string } } })
-        ?.oAuthInfo?.socialUserInfo;
-      const refreshToken = (result as { refreshToken?: string }).refreshToken;
-      onLoginComplete({
-        userToken: result.userToken,
-        encryptionKey: result.encryptionKey,
-        refreshToken,
-        profile: {
-          email: social?.email,
-          displayName: social?.name,
-        },
-      });
-    }
+    loginCallback
   );
 
   sdkRef.current = sdk;
   await ensureDeviceToken(sdk, options?.forceRefreshDevice ?? false);
 
-  // Re-apply device tokens after creation
   const fresh = readDeviceCookies();
   sdk.updateConfigs({
     appSettings: { appId },

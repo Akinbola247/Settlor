@@ -27,14 +27,22 @@ type Props = {
   onError?: (msg: string) => void;
 };
 
-function isOAuthReturn(): boolean {
+/** Circle Google OAuth returns tokens in the URL hash (implicit flow), not ?code=. */
+export function isOAuthReturn(): boolean {
   if (typeof window === "undefined") return false;
   const { search, hash } = window.location;
+  const hasOAuthHash =
+    hash.includes("id_token") ||
+    hash.includes("access_token") ||
+    /[#&]state=/.test(hash);
+  const hasPendingSocial =
+    window.localStorage.getItem("socialLoginProvider") === "Google" ||
+    window.localStorage.getItem("socialLoginProvider") === "Facebook";
   return (
     search.includes("code=") ||
     search.includes("state=") ||
-    hash.includes("code=") ||
-    hash.includes("access_token")
+    hasOAuthHash ||
+    (hasPendingSocial && hash.length > 1)
   );
 }
 
@@ -116,7 +124,11 @@ export function useCircleLoginBoot(options: Props = {}) {
           setLoading(false);
           return;
         }
-        if (!deviceRetryRef.current && isDeviceCredentialError(msg)) {
+        if (
+          !deviceRetryRef.current &&
+          isDeviceCredentialError(msg) &&
+          !isOAuthReturn()
+        ) {
           deviceRetryRef.current = true;
           clearCircleDeviceState();
           setError(null);
@@ -134,7 +146,10 @@ export function useCircleLoginBoot(options: Props = {}) {
         setLoading(false);
         onErrorRef.current?.(msg);
       },
-      { forceRefreshDevice: true }
+      {
+        forceRefreshDevice: !isOAuthReturn(),
+        oauthReturn: isOAuthReturn(),
+      }
     );
 
     setReady(true);
@@ -170,6 +185,19 @@ export function useCircleLoginBoot(options: Props = {}) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap once on mount
   }, [bootstrapSdk]);
+
+  useEffect(() => {
+    if (!isOAuthReturn()) return;
+    const timeout = window.setTimeout(() => {
+      if (finishingRef.current) return;
+      setError((prev) => {
+        if (prev) return prev;
+        return "Sign-in timed out. Go back to Login and try Google again.";
+      });
+      setLoading(false);
+    }, 90_000);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const openEmailOtpPopup = useCallback(() => {
     const sdk = sdkRef.current;
