@@ -8,7 +8,9 @@ import { useCircleLoginBoot } from "@/components/auth/CircleLoginBoot";
  * and Google Cloud Console “Authorized redirect URIs” exactly.
  */
 export default function AuthCallbackPage() {
-  const { loading, message, error } = useCircleLoginBoot({ autoFinish: true });
+  const { loading, message, error, resetDeviceLogin, isDeviceError } = useCircleLoginBoot({
+    autoFinish: true,
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)] p-6">
@@ -28,9 +30,19 @@ export default function AuthCallbackPage() {
         {error && (
           <>
             <p className="mt-4 text-sm text-red-600">{error}</p>
-            <a href="/login" className="btn-accent mt-6 inline-flex">
-              Try again
-            </a>
+            {isDeviceError ? (
+              <button
+                type="button"
+                className="btn-accent mt-6 inline-flex"
+                onClick={resetDeviceLogin}
+              >
+                Reset sign-in and try again
+              </button>
+            ) : (
+              <a href="/login" className="btn-accent mt-6 inline-flex">
+                Try again
+              </a>
+            )}
           </>
         )}
         {!loading && !error && (

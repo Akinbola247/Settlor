@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { getCookie } from "cookies-next";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import {
   initCircleSdk,
@@ -11,8 +10,12 @@ import {
   setupWalletAfterLogin,
   createServerSession,
   verifyEmailOtp,
+  ensureDeviceToken,
+  clearCircleDeviceState,
+  isDeviceCredentialError,
   type EmailOtpSession,
 } from "@/lib/circle-auth";
+import { DEVICE_ID_STORAGE_KEY, readDeviceCookies } from "@/lib/circle-device";
 function removeCircleOtpIframe(): void {
   document.getElementById("sdkIframe")?.remove();
 }
@@ -38,6 +41,11 @@ function isOAuthReturn(): boolean {
 export function useCircleLoginBoot(options: Props = {}) {
   const sdkRef = useRef<W3SSdk | null>(null);
   const finishingRef = useRef(false);
+  const deviceRetryRef = useRef(false);
+  const onErrorRef = useRef(options.onError);
+  const onReadyRef = useRef(options.onReady);
+  onErrorRef.current = options.onError;
+  onReadyRef.current = options.onReady;
   const pendingEmailRef = useRef<string | null>(null);
   const emailOtpSessionRef = useRef<EmailOtpSession | null>(null);
   const [ready, setReady] = useState(false);
@@ -62,7 +70,9 @@ export function useCircleLoginBoot(options: Props = {}) {
       );
       setMessage("Starting your session…");
       const deviceId =
-        typeof window !== "undefined" ? window.localStorage.getItem("deviceId") : null;
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(DEVICE_ID_STORAGE_KEY)
+          : null;
       if (!result.refreshToken) {
         console.warn(
           "[iPayX] Circle login did not return refreshToken — Arc balance pay may require re-login each hour."
@@ -88,6 +98,50 @@ export function useCircleLoginBoot(options: Props = {}) {
     }
   }, [options.onError]);
 
+  const bootstrapSdk = useCallback(async () => {
+    if (isOAuthReturn()) {
+      setLoading(true);
+      setMessage("Completing Google sign-in…");
+    }
+
+    const sdk = await initCircleSdk(
+      sdkRef,
+      (result) => {
+        void completeLogin(result);
+      },
+      (msg) => {
+        if (finishingRef.current) return;
+        const canceled = /cancel/i.test(msg);
+        if (canceled) {
+          setLoading(false);
+          return;
+        }
+        if (!deviceRetryRef.current && isDeviceCredentialError(msg)) {
+          deviceRetryRef.current = true;
+          clearCircleDeviceState();
+          setError(null);
+          setLoading(true);
+          setMessage("Refreshing device sign-in…");
+          void bootstrapSdk().catch((e) => {
+            const retryMsg = e instanceof Error ? e.message : "Init failed";
+            setError(retryMsg);
+            setLoading(false);
+            onErrorRef.current?.(retryMsg);
+          });
+          return;
+        }
+        setError(msg);
+        setLoading(false);
+        onErrorRef.current?.(msg);
+      },
+      { forceRefreshDevice: true }
+    );
+
+    setReady(true);
+    onReadyRef.current?.();
+    return sdk;
+  }, [completeLogin]);
+
   useEffect(() => {
     let active = true;
 
@@ -100,44 +154,22 @@ export function useCircleLoginBoot(options: Props = {}) {
           return;
         }
 
-        if (isOAuthReturn()) {
-          setLoading(true);
-          setMessage("Completing Google sign-in…");
-        }
-
-        const sdk = await initCircleSdk(
-          sdkRef,
-          (result) => {
-            if (active) void completeLogin(result);
-          },
-          (msg) => {
-            if (!active || finishingRef.current) return;
-            const canceled = /cancel/i.test(msg);
-            if (!canceled) setError(msg);
-            setLoading(false);
-            if (!canceled) options.onError?.(msg);
-          },
-          { forceRefreshDevice: isOAuthReturn() }
-        );
-
+        await bootstrapSdk();
         if (!active) return;
-        setReady(true);
-        options.onReady?.();
       } catch (e) {
         if (!active) return;
         const msg = e instanceof Error ? e.message : "Init failed";
         setError(msg);
         setLoading(false);
-        options.onError?.(msg);
+        onErrorRef.current?.(msg);
       }
     })();
 
     return () => {
       active = false;
     };
-    // Run once on mount — do not re-run when options object identity changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completeLogin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap once on mount
+  }, [bootstrapSdk]);
 
   const openEmailOtpPopup = useCallback(() => {
     const sdk = sdkRef.current;
@@ -156,21 +188,28 @@ export function useCircleLoginBoot(options: Props = {}) {
     setMessage("");
   }, []);
 
-  const startGoogleLogin = useCallback(() => {
+  const startGoogleLogin = useCallback(async () => {
     const sdk = sdkRef.current;
     if (!sdk) return;
-    const deviceToken = getCookie("deviceToken") as string;
-    const deviceKey = getCookie("deviceEncryptionKey") as string;
-    if (!deviceToken || !deviceKey) {
-      setError("Device setup incomplete. Refresh the page.");
-      return;
-    }
     resetEmailOtpFlow();
     pendingEmailRef.current = null;
     setLoading(true);
     setError(null);
-    setMessage("Redirecting to Google…");
-    configureGoogleLogin(sdk, deviceToken, deviceKey);
+    setMessage("Preparing secure sign-in…");
+    try {
+      await ensureDeviceToken(sdk, true);
+      const { deviceToken, deviceEncryptionKey } = readDeviceCookies();
+      if (!deviceToken || !deviceEncryptionKey) {
+        throw new Error("Device setup incomplete. Try again.");
+      }
+      setMessage("Redirecting to Google…");
+      configureGoogleLogin(sdk, deviceToken, deviceEncryptionKey);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not start Google sign-in";
+      setError(msg);
+      setLoading(false);
+      onErrorRef.current?.(msg);
+    }
   }, [resetEmailOtpFlow]);
 
   const sendEmailOtp = useCallback(async (email: string) => {
@@ -209,6 +248,12 @@ export function useCircleLoginBoot(options: Props = {}) {
     await sendEmailOtp(pendingEmailRef.current);
   }, [sendEmailOtp]);
 
+  const resetDeviceLogin = useCallback(() => {
+    deviceRetryRef.current = false;
+    clearCircleDeviceState();
+    window.location.reload();
+  }, []);
+
   return {
     ready,
     loading,
@@ -219,6 +264,8 @@ export function useCircleLoginBoot(options: Props = {}) {
     sendEmailOtp,
     resetEmailOtpFlow,
     resendEmailOtp,
+    resetDeviceLogin,
+    isDeviceError: Boolean(error && isDeviceCredentialError(error)),
   };
 }
 

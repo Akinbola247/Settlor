@@ -5,6 +5,16 @@ import { getCookie, setCookie } from "cookies-next";
 import { SocialLoginProvider } from "@circle-fin/w3s-pw-web-sdk/dist/src/types";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import { circleErrorMessage } from "@/lib/circle";
+import {
+  clearCircleDeviceState,
+  clearDeviceTokenCookies,
+  deviceCookieOptions,
+  hasDeviceCookies,
+  isDeviceCredentialError,
+  readDeviceCookies,
+  resolveDeviceId,
+  setDeviceCookies,
+} from "@/lib/circle-device";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -29,43 +39,42 @@ export type WalletInfo = {
   blockchain: string;
 };
 
-async function getDeviceId(sdk: W3SSdk): Promise<string> {
-  let deviceId =
-    typeof window !== "undefined" ? window.localStorage.getItem("deviceId") : null;
-  if (!deviceId) {
-    deviceId = await sdk.getDeviceId();
-    window.localStorage.setItem("deviceId", deviceId);
-  }
-  return deviceId;
-}
+export { clearCircleDeviceState, isDeviceCredentialError } from "@/lib/circle-device";
 
-/** Ensure device token cookies exist before OAuth / challenge execution. */
-export async function ensureDeviceToken(sdk: W3SSdk, forceRefresh = false): Promise<void> {
-  const deviceId = await getDeviceId(sdk);
-  const existingToken = getCookie("deviceToken") as string;
-  const existingKey = getCookie("deviceEncryptionKey") as string;
-
-  if (existingToken && existingKey && !forceRefresh) return;
-
+async function createDeviceTokenForSdk(sdk: W3SSdk): Promise<void> {
+  const deviceId = await resolveDeviceId(sdk);
   const res = await fetch("/api/endpoints", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ action: "createDeviceToken", deviceId }),
   });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(circleErrorMessage(data, "Failed to create device token"));
   }
-
-  setCookie("deviceToken", data.deviceToken);
-  setCookie("deviceEncryptionKey", data.deviceEncryptionKey);
+  if (!data.deviceToken || !data.deviceEncryptionKey) {
+    throw new Error("Invalid device token response");
+  }
+  setDeviceCookies(data.deviceToken, data.deviceEncryptionKey);
 }
 
-function readDeviceConfig() {
-  return {
-    deviceToken: (getCookie("deviceToken") as string) || "",
-    deviceEncryptionKey: (getCookie("deviceEncryptionKey") as string) || "",
-  };
+/** Ensure device token cookies exist before OAuth / challenge execution. */
+export async function ensureDeviceToken(sdk: W3SSdk, forceRefresh = false): Promise<void> {
+  if (forceRefresh) {
+    clearDeviceTokenCookies();
+  } else if (hasDeviceCookies()) {
+    return;
+  }
+
+  try {
+    await createDeviceTokenForSdk(sdk);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!isDeviceCredentialError(msg)) throw e;
+    clearCircleDeviceState();
+    await createDeviceTokenForSdk(sdk);
+  }
 }
 
 function googleConfig() {
@@ -82,7 +91,7 @@ export function syncSdkAuth(
   userToken: string,
   encryptionKey: string
 ) {
-  const { deviceToken, deviceEncryptionKey } = readDeviceConfig();
+  const { deviceToken, deviceEncryptionKey } = readDeviceCookies();
   const authentication = { userToken, encryptionKey };
   // updateConfigs replaces configs entirely — authentication must be included
   sdk.updateConfigs({
@@ -141,7 +150,7 @@ export async function prepareSdkForPayment(
   encryptionKey: string
 ): Promise<W3SSdk> {
   const { W3SSdk } = await import("@circle-fin/w3s-pw-web-sdk");
-  const { deviceToken, deviceEncryptionKey } = readDeviceConfig();
+  const { deviceToken, deviceEncryptionKey } = readDeviceCookies();
 
   if (!sdkRef.current) {
     sdkRef.current = new W3SSdk(
@@ -173,7 +182,7 @@ export async function initCircleSdk(
   options?: { forceRefreshDevice?: boolean }
 ) {
   const { W3SSdk } = await import("@circle-fin/w3s-pw-web-sdk");
-  const { deviceToken, deviceEncryptionKey } = readDeviceConfig();
+  const { deviceToken, deviceEncryptionKey } = readDeviceCookies();
 
   const sdk = new W3SSdk(
     {
@@ -213,7 +222,7 @@ export async function initCircleSdk(
   await ensureDeviceToken(sdk, options?.forceRefreshDevice ?? false);
 
   // Re-apply device tokens after creation
-  const fresh = readDeviceConfig();
+  const fresh = readDeviceCookies();
   sdk.updateConfigs({
     appSettings: { appId },
     loginConfigs: {
@@ -236,25 +245,38 @@ export async function requestEmailOtp(
   sdk: W3SSdk,
   email: string
 ): Promise<EmailOtpSession> {
-  const deviceId = await getDeviceId(sdk);
-  const res = await fetch("/api/endpoints", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "requestEmailOtp",
-      deviceId,
-      email: email.trim().toLowerCase(),
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(circleErrorMessage(data, "Failed to send verification code"));
+  const runOtpRequest = async () => {
+    const deviceId = await resolveDeviceId(sdk);
+    const res = await fetch("/api/endpoints", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        action: "requestEmailOtp",
+        deviceId,
+        email: email.trim().toLowerCase(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(circleErrorMessage(data, "Failed to send verification code"));
+    }
+    if (!data.deviceToken || !data.deviceEncryptionKey || !data.otpToken) {
+      throw new Error("Invalid response from email verification service");
+    }
+    setDeviceCookies(data.deviceToken, data.deviceEncryptionKey);
+    return data;
+  };
+
+  let data: Awaited<ReturnType<typeof runOtpRequest>>;
+  try {
+    data = await runOtpRequest();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!isDeviceCredentialError(msg)) throw e;
+    clearCircleDeviceState();
+    data = await runOtpRequest();
   }
-  if (!data.deviceToken || !data.deviceEncryptionKey || !data.otpToken) {
-    throw new Error("Invalid response from email verification service");
-  }
-  setCookie("deviceToken", data.deviceToken);
-  setCookie("deviceEncryptionKey", data.deviceEncryptionKey);
   return {
     deviceToken: data.deviceToken,
     deviceEncryptionKey: data.deviceEncryptionKey,
@@ -266,9 +288,9 @@ export function configureEmailOtpLogin(
   sdk: W3SSdk,
   session: EmailOtpSession
 ) {
-  setCookie("appId", appId);
-  setCookie("deviceToken", session.deviceToken);
-  setCookie("deviceEncryptionKey", session.deviceEncryptionKey);
+  const cookieOpts = deviceCookieOptions();
+  setCookie("appId", appId, cookieOpts);
+  setDeviceCookies(session.deviceToken, session.deviceEncryptionKey);
 
   sdk.updateConfigs({
     appSettings: { appId },
@@ -286,10 +308,10 @@ export function verifyEmailOtp(sdk: W3SSdk) {
 }
 
 export function configureGoogleLogin(sdk: W3SSdk, deviceToken: string, deviceKey: string) {
-  setCookie("appId", appId);
-  setCookie("google.clientId", googleClientId);
-  setCookie("deviceToken", deviceToken);
-  setCookie("deviceEncryptionKey", deviceKey);
+  const cookieOpts = deviceCookieOptions();
+  setCookie("appId", appId, cookieOpts);
+  setCookie("google.clientId", googleClientId, cookieOpts);
+  setDeviceCookies(deviceToken, deviceKey);
 
   sdk.updateConfigs({
     appSettings: { appId },

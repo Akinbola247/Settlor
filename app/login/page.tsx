@@ -17,6 +17,8 @@ export default function LoginPage() {
     sendEmailOtp,
     resetEmailOtpFlow,
     resendEmailOtp,
+    resetDeviceLogin,
+    isDeviceError,
   } = useCircleLoginBoot();
 
   return (
@@ -129,7 +131,16 @@ export default function LoginPage() {
 
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
+                <p>{error}</p>
+                {isDeviceError && (
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                    onClick={resetDeviceLogin}
+                  >
+                    Reset sign-in and try again
+                  </button>
+                )}
               </div>
             )}
 
