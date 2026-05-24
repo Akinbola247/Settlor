@@ -69,7 +69,7 @@ function PaymentsContent() {
         </Link>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="card p-6">
           <p className="text-xs uppercase text-[var(--color-muted)]">Balance</p>
           <p className="mt-2 font-serif text-3xl font-bold">

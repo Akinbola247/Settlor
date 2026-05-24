@@ -84,7 +84,7 @@ function InvoicesContent() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold">Invoices</h1>
+          <h1 className="font-serif text-2xl font-bold sm:text-3xl">Invoices</h1>
           <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">
             Bills you owe and invoices you sent.
           </p>
@@ -205,7 +205,72 @@ function InvoicesContent() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="divide-y divide-[var(--color-border)] md:hidden">
+            {filtered.map((inv) => {
+              const total = invoiceTotal(inv.items);
+              const actionable =
+                view === "received" &&
+                (inv.status === "pending" || inv.status === "overdue");
+              return (
+                <li
+                  key={inv.id}
+                  className={cn(
+                    "p-4",
+                    actionable && "bg-orange-50/40"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-slate-500">{inv.invoiceNumber}</p>
+                      <p className="mt-1 font-semibold">
+                        {view === "sent" ? inv.recipientName : inv.creatorName ?? "—"}
+                      </p>
+                      {view === "sent" && inv.recipientEmail && (
+                        <p className="truncate text-xs text-[var(--color-muted)]">{inv.recipientEmail}</p>
+                      )}
+                    </div>
+                    <span className={getStatusBadgeClass(inv.status)}>{inv.status}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-serif text-xl font-bold tabular-nums">${formatUSDC(total)}</p>
+                    <p className="text-xs text-[var(--color-muted)]">
+                      Due {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {actionable ? (
+                      <button
+                        type="button"
+                        className="btn-accent flex-1 px-4 py-2 text-xs sm:flex-none"
+                        onClick={() => setSelected(inv)}
+                      >
+                        Pay now
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-outline flex-1 px-4 py-2 text-xs sm:flex-none"
+                        onClick={() => setSelected(inv)}
+                      >
+                        View
+                      </button>
+                    )}
+                    {view === "sent" && (
+                      <button
+                        type="button"
+                        className="btn-ghost px-3 py-2 text-xs text-red-600"
+                        onClick={() => remove(inv.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-[var(--color-border)] bg-white text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
                 <tr>
@@ -290,6 +355,7 @@ function InvoicesContent() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

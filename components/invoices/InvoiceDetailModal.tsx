@@ -33,9 +33,9 @@ export default function InvoiceDetailModal({
   const canPay = isPayer && (invoice.status === "pending" || invoice.status === "overdue");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="card relative my-8 w-full max-w-lg p-6 shadow-xl">
+      <div className="card relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl p-5 shadow-xl sm:my-8 sm:rounded-2xl sm:p-6">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="text-xs text-[var(--color-muted)]">{invoice.invoiceNumber}</p>

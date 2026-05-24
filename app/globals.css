@@ -132,6 +132,6 @@
     @apply bg-white/90 backdrop-blur-md shadow-sm;
   }
   .dashboard-main-inner {
-    @apply mx-auto w-full max-w-6xl;
+    @apply mx-auto w-full max-w-6xl min-w-0;
   }
 }

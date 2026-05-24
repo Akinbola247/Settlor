@@ -37,17 +37,19 @@ export default function IncomeChart({ invoices }: Props) {
           <h2 className="font-serif text-lg font-bold">Total income</h2>
           <p className="text-xs text-[var(--color-muted)]">Paid invoices over time</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
-            <span className="font-medium text-slate-600">Collected</span>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+              <span className="font-medium text-slate-600">Collected</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+              <span className="font-medium text-slate-600">Pending</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-            <span className="font-medium text-slate-600">Pending</span>
-          </div>
-          <div className="text-right">
-            <p className="font-serif text-xl font-bold text-emerald-600">
+          <div className="text-left sm:text-right">
+            <p className="font-serif text-lg font-bold text-emerald-600 sm:text-xl">
               ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </p>
           </div>

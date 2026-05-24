@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { isNavItemActive } from "@/lib/nav-active";
-import { ACCOUNT_NAV, COMING_SOON_NAV, MAIN_NAV, QUICK_ACTIONS } from "./sidebar-nav";
-import IPayXLogo from "@/components/brand/IPayXLogo";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
-import { IconLogout } from "./icons";
+import DashboardSidebar from "./DashboardSidebar";
+import { IconMenu } from "./icons";
 
 type Props = {
   children: React.ReactNode;
@@ -26,8 +25,25 @@ function AppShellInner({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+
+  useEffect(() => {
+    closeMobileNav();
+  }, [pathname, searchParams, closeMobileNav]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
 
   const handleLogout = async () => {
+    closeMobileNav();
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     router.push("/login");
   };
@@ -43,132 +59,69 @@ function AppShellInner({
 
   return (
     <div className="flex min-h-screen bg-[var(--color-surface)]">
-      <aside className="sidebar flex w-[260px] shrink-0 flex-col border-r border-[var(--color-border)] bg-white">
-        <IPayXLogo
-          href="/dashboard"
-          size="md"
-          className="h-16 border-b border-[var(--color-border)] px-5 hover:bg-slate-50"
+      {/* Desktop sidebar */}
+      <div className="hidden shrink-0 lg:block">
+        <DashboardSidebar
+          navActive={navActive}
+          pendingCount={pendingCount}
+          onLogout={handleLogout}
+          className="sticky top-0 h-screen"
         />
+      </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="sidebar-section-title">Main menu</p>
-          <ul className="space-y-1">
-            {MAIN_NAV.map((item) => {
-              const Icon = item.icon;
-              const badge =
-                item.badgeKey === "pendingInvoices" && pendingCount > 0 ? pendingCount : null;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn("sidebar-link", navActive(item.href) && "sidebar-link-active")}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    <span className="flex-1">{item.label}</span>
-                    {badge != null && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
-                        {badge}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <p className="sidebar-section-title mt-8">Quick actions</p>
-          <ul className="space-y-1">
-            {QUICK_ACTIONS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn("sidebar-link", navActive(item.href) && "sidebar-link-active")}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <p className="sidebar-section-title mt-8">Account</p>
-          <ul className="space-y-1">
-            {ACCOUNT_NAV.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn("sidebar-link", navActive(item.href) && "sidebar-link-active")}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <p className="sidebar-section-title mt-8">Coming soon</p>
-          <ul className="space-y-1">
-            {COMING_SOON_NAV.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.label}>
-                  <span
-                    title={item.hint}
-                    className="sidebar-link-disabled flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400"
-                  >
-                    <Icon className="h-5 w-5 shrink-0 opacity-60" />
-                    <span className="flex-1">{item.label}</span>
-                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                      Soon
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="border-t border-[var(--color-border)] p-3 space-y-1">
-          <Link href="/help" className="sidebar-link w-full text-[var(--color-muted)]">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-bold">?</span>
-            <span>Help</span>
-          </Link>
-          <Link href="/" className="sidebar-link w-full text-[var(--color-muted)]">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs">⌂</span>
-            <span>Home</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            <IconLogout className="w-5 h-5 shrink-0" />
-            <span>Sign out</span>
-          </button>
-        </div>
-      </aside>
+      {/* Mobile drawer */}
+      {mobileNavOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] lg:hidden"
+          aria-label="Close menu"
+          onClick={closeMobileNav}
+        />
+      )}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-out lg:hidden",
+          mobileNavOpen ? "translate-x-0" : "pointer-events-none -translate-x-full"
+        )}
+        aria-hidden={!mobileNavOpen}
+      >
+        <DashboardSidebar
+          navActive={navActive}
+          pendingCount={pendingCount}
+          onNavigate={closeMobileNav}
+          onLogout={handleLogout}
+          showClose
+          onClose={closeMobileNav}
+          className="h-full shadow-xl"
+        />
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-[var(--color-border)] bg-white/95 px-6 backdrop-blur-md">
-          <DashboardBreadcrumb />
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-[var(--color-border)] bg-white/95 px-3 backdrop-blur-md sm:h-16 sm:gap-4 sm:px-4 lg:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              className="icon-btn shrink-0 lg:hidden"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileNavOpen}
+            >
+              <IconMenu className="h-5 w-5" />
+            </button>
+            <DashboardBreadcrumb />
+          </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               href="/dashboard/wallet"
-              className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-1.5 pr-3 transition hover:border-orange-200"
+              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-1.5 pr-2 transition hover:border-orange-200 sm:gap-3 sm:pr-3"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white sm:h-9 sm:w-9">
                 {initials}
               </div>
               <div className="hidden min-w-0 sm:block">
                 <p className="truncate text-sm font-semibold leading-tight">{userName ?? "Account"}</p>
-                <p className="truncate text-xs text-[var(--color-muted)] max-w-[140px]">
+                <p className="max-w-[140px] truncate text-xs text-[var(--color-muted)]">
                   {userEmail ?? "Arc Testnet"}
                 </p>
               </div>
@@ -176,7 +129,7 @@ function AppShellInner({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="dashboard-main-inner min-h-full">{children}</div>
         </main>
       </div>
@@ -186,7 +139,13 @@ function AppShellInner({
 
 export default function AppShell(props: Props) {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="spinner" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="spinner" />
+        </div>
+      }
+    >
       <AppShellInner {...props} />
     </Suspense>
   );

@@ -85,13 +85,13 @@ export default function RecentActivities({ sent, received, onSelect }: Props) {
           <h2 className="font-serif text-lg font-bold">Recent activity</h2>
           <p className="text-xs text-[var(--color-muted)]">Invoices and payments</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <input
             type="search"
             placeholder="Search…"
-            className="rounded-xl border border-[var(--color-border)] bg-slate-50 px-3 py-2 text-xs outline-none focus:border-orange-300"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-slate-50 px-3 py-2 text-xs outline-none focus:border-orange-300 sm:w-36"
           />
-          <button type="button" className="btn-outline px-3 py-2 text-xs">
+          <button type="button" className="btn-outline px-3 py-2 text-xs sm:shrink-0">
             Filter
           </button>
         </div>

@@ -45,15 +45,15 @@ export default function DashboardOverviewPage() {
 
   return (
     <>
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-bold tracking-tight lg:text-4xl">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
           {greeting}, {firstName}
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">Invoices and USDC balance at a glance.</p>
       </div>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-12">
-        <div className="card p-6 lg:col-span-5 lg:p-8">
+        <div className="card p-5 sm:p-6 lg:col-span-5 lg:p-8">
           <div className="flex items-start justify-between gap-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
               Total balance
@@ -62,7 +62,7 @@ export default function DashboardOverviewPage() {
               USDC
             </span>
           </div>
-          <p className="mt-3 font-serif text-4xl font-bold tracking-tight lg:text-5xl">
+          <p className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
             ${balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="mt-2 text-sm text-[var(--color-muted)]">USDC</p>
@@ -76,7 +76,7 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-7">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-7 xl:grid-cols-3">
           <StatCard
             label="Collected"
             value={`$${formatUSDC(totalCollected)}`}

@@ -30,7 +30,7 @@ export default function WalletPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
             Balance
           </p>
-          <p className="mt-2 font-serif text-5xl font-bold tracking-tight">${formatUSDC(balance)}</p>
+          <p className="mt-2 font-serif text-4xl font-bold tracking-tight sm:text-5xl">${formatUSDC(balance)}</p>
           <p className="mt-1 text-sm text-slate-500">USDC</p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
