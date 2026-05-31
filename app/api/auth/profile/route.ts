@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { assertEmailAvailableForWallet, getAuthSession } from "@/lib/auth";
+import {
+  findEmailWalletConflict,
+  formatEmailWalletConflictError,
+  getAuthSession,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { linkInvoicesToPayee } from "@/lib/invoices";
 import { normalizeEmail } from "@/lib/invoice-access";
@@ -24,7 +28,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    await assertEmailAvailableForWallet(email, session.user.walletAddress);
+    const conflict = await findEmailWalletConflict(email, session.user.walletAddress);
+    if (conflict.kind === "conflict") {
+      throw new Error(formatEmailWalletConflictError(conflict.existing.walletAddress));
+    }
+    if (conflict.kind === "arc-to-solana" && conflict.legacyUser.id !== session.user.id) {
+      await prisma.user.update({
+        where: { id: conflict.legacyUser.id },
+        data: { email: null },
+      });
+    }
 
     const user = await prisma.user.update({
       where: { id: session.user.id },

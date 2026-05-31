@@ -6,7 +6,7 @@ import {
   SESSION_COOKIE,
 } from "@/lib/auth";
 
-/** Delete the signed-in user's iPayX account (not the on-chain Circle wallet). */
+/** Delete the signed-in user's Settlor account (not the on-chain Circle wallet). */
 export async function DELETE() {
   const session = await getAuthSession();
   if (!session) {

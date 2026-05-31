@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { getWalletBalances, extractUsdcBalance } from "@/lib/circle";
+import {
+  getWalletBalances,
+  extractUsdcBalance,
+  listCircleWallets,
+} from "@/lib/circle";
+import { pickSettlementWallet } from "@/lib/circle-wallet";
+import { CIRCLE_SOLANA_BLOCKCHAIN } from "@/lib/solana-config";
+import { sponsorSolIfNeeded } from "@/lib/gas-sponsor";
+import { isSolanaAddress } from "@/lib/address-utils";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getAuthSession();
@@ -9,22 +18,49 @@ export async function GET() {
   }
 
   let usdcBalance = "0";
-  if (session.user.walletId) {
-    const balances = await getWalletBalances(
-      session.circleUserToken,
-      session.user.walletId
-    );
+  let gasSponsor: { toppedUp?: boolean } | undefined;
+  let user = session.user;
+
+  const circleWallets = await listCircleWallets(session.circleUserToken);
+  const settlement = pickSettlementWallet(circleWallets);
+
+  if (
+    settlement &&
+    (user.walletId !== settlement.id || user.walletAddress !== settlement.address)
+  ) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        walletId: settlement.id,
+        walletAddress: settlement.address,
+      },
+    });
+  }
+
+  const walletId = settlement?.id ?? user.walletId;
+
+  if (walletId) {
+    const balances = await getWalletBalances(session.circleUserToken, walletId);
     if (balances) usdcBalance = extractUsdcBalance(balances);
+
+    if (isSolanaAddress(user.walletAddress)) {
+      try {
+        gasSponsor = await sponsorSolIfNeeded(user.walletAddress);
+      } catch {
+        /* non-fatal — user may already have SOL */
+      }
+    }
   }
 
   return NextResponse.json({
-    user: session.user,
+    user,
     usdcBalance,
-    wallet: session.user.walletId
+    gasSponsor,
+    wallet: walletId
       ? {
-          id: session.user.walletId,
-          address: session.user.walletAddress,
-          blockchain: "ARC-TESTNET",
+          id: walletId,
+          address: user.walletAddress,
+          blockchain: CIRCLE_SOLANA_BLOCKCHAIN,
         }
       : null,
   });
