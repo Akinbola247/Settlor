@@ -82,14 +82,14 @@ export default function RecentActivities({ sent, received, onSelect }: Props) {
     <div className="card flex flex-col p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-lg font-bold">Recent activity</h2>
+          <h2 className="font-display text-lg font-bold">Recent activity</h2>
           <p className="text-xs text-[var(--color-muted)]">Invoices and payments</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <input
             type="search"
             placeholder="Search…"
-            className="w-full rounded-xl border border-[var(--color-border)] bg-slate-50 px-3 py-2 text-xs outline-none focus:border-orange-300 sm:w-36"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-slate-50 px-3 py-2 text-xs outline-none focus:border-brand sm:w-36"
           />
           <button type="button" className="btn-outline px-3 py-2 text-xs sm:shrink-0">
             Filter
@@ -115,7 +115,7 @@ export default function RecentActivities({ sent, received, onSelect }: Props) {
                 >
                   <span
                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg ${
-                      isIn ? "bg-emerald-50" : "bg-orange-50"
+                      isIn ? "bg-emerald-50" : "bg-brand-subtle"
                     }`}
                   >
                     {isIn ? "↓" : "↑"}

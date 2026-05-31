@@ -20,10 +20,10 @@ export default function StatCard({
   if (accent) {
     return (
       <div className={cn("stat-card-accent", className)}>
-        <p className="text-sm font-medium text-orange-100">{label}</p>
-        <p className="font-serif text-3xl font-bold tracking-tight">{value}</p>
+        <p className="text-sm font-medium text-white/80">{label}</p>
+        <p className="font-display text-3xl font-bold tracking-tight">{value}</p>
         {delta && (
-          <p className="text-xs font-semibold text-orange-100">{delta}</p>
+          <p className="text-xs font-semibold text-white/70">{delta}</p>
         )}
       </div>
     );
@@ -34,7 +34,7 @@ export default function StatCard({
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
         {label}
       </p>
-      <p className="font-serif text-3xl font-bold tracking-tight">{value}</p>
+      <p className="font-display text-3xl font-bold tracking-tight">{value}</p>
       {delta && (
         <p
           className={cn(

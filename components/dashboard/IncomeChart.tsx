@@ -34,13 +34,13 @@ export default function IncomeChart({ invoices }: Props) {
     <div className="card p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-serif text-lg font-bold">Total income</h2>
+          <h2 className="font-display text-lg font-bold">Total income</h2>
           <p className="text-xs text-[var(--color-muted)]">Paid invoices over time</p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-xs">
-              <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+              <span className="h-2.5 w-2.5 rounded-full bg-brand-subtle0" />
               <span className="font-medium text-slate-600">Collected</span>
             </div>
             <div className="flex items-center gap-2 text-xs">
@@ -49,7 +49,7 @@ export default function IncomeChart({ invoices }: Props) {
             </div>
           </div>
           <div className="text-left sm:text-right">
-            <p className="font-serif text-lg font-bold text-emerald-600 sm:text-xl">
+            <p className="font-display text-lg font-bold text-emerald-600 sm:text-xl">
               ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </p>
           </div>
