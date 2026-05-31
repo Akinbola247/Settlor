@@ -68,7 +68,7 @@ export function useCircleLoginBoot(options: Props = {}) {
     if (finishingRef.current) return;
     finishingRef.current = true;
     setLoading(true);
-    setMessage("Creating your Arc wallet…");
+    setMessage("Setting up your Solana wallet…");
     setError(null);
     try {
       const wallet = await setupWalletAfterLogin(
@@ -83,7 +83,7 @@ export function useCircleLoginBoot(options: Props = {}) {
           : null;
       if (!result.refreshToken) {
         console.warn(
-          "[iPayX] Circle login did not return refreshToken — Arc balance pay may require re-login each hour."
+          "[Settlor] Circle login did not return refreshToken — balance pay may require re-login each hour."
         );
       }
       const profile = {
@@ -314,7 +314,7 @@ export default function CircleLoginBoot({ showOverlay }: { showOverlay?: boolean
         {error && (
           <>
             <p className="text-sm text-red-600">{error}</p>
-            <a href="/login" className="mt-4 inline-block text-sm font-semibold text-orange-600">
+            <a href="/login" className="mt-4 inline-block text-sm font-semibold text-brand">
               Back to login
             </a>
           </>

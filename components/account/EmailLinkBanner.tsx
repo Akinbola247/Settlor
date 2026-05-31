@@ -17,7 +17,7 @@ export default function EmailLinkBanner({ currentEmail, onLinked }: Props) {
 
   return (
     <div className="card mb-6 border-amber-200 bg-amber-50/80 p-5">
-      <h2 className="font-serif text-lg font-bold text-amber-900">Link your billing email</h2>
+      <h2 className="font-display text-lg font-bold text-amber-900">Link your billing email</h2>
       <p className="mt-1 text-sm text-amber-800">
         Invoices sent to your email appear under <strong>To pay</strong> when this matches the address
         on the invoice. Enter the same email you use to receive invoice notifications.
