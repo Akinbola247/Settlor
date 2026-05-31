@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import IPayXLogo from "@/components/brand/IPayXLogo";
+import SettlorLogo from "@/components/brand/SettlorLogo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { InvoiceDto } from "@/lib/types";
@@ -17,7 +17,8 @@ export default function PublicPayPage() {
   const [error, setError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
   const [payerWalletId, setPayerWalletId] = useState<string | undefined>();
-  const [payerArcBalance, setPayerArcBalance] = useState("0");
+  const [payerSolanaAddress, setPayerSolanaAddress] = useState<string | undefined>();
+  const [payerSolanaBalance, setPayerSolanaBalance] = useState("0");
 
   useEffect(() => {
     (async () => {
@@ -42,7 +43,8 @@ export default function PublicPayPage() {
       const data = await res.json();
       if (data.wallet?.id) {
         setPayerWalletId(data.wallet.id);
-        setPayerArcBalance(data.usdcBalance ?? "0");
+        setPayerSolanaAddress(data.wallet.address);
+        setPayerSolanaBalance(data.usdcBalance ?? "0");
       }
     })();
   }, []);
@@ -59,8 +61,8 @@ export default function PublicPayPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
         <p className="text-red-600">{error ?? "Invoice not found"}</p>
-        <Link href="/" className="text-orange-600 font-semibold">
-          Go to iPayX
+        <Link href="/" className="link-brand font-semibold">
+          Go to Settlor
         </Link>
       </div>
     );
@@ -72,13 +74,13 @@ export default function PublicPayPage() {
   return (
     <div className="min-h-screen bg-[var(--color-surface)] py-12 px-4">
       <div className="mx-auto max-w-lg">
-        <IPayXLogo href="/" size="sm" className="mb-8" />
+        <SettlorLogo href="/" size="sm" className="mb-8" />
 
-        <div className="card p-8 shadow-lg">
+        <div className="card p-8 shadow-lg ring-1 ring-[var(--color-brand)]/10">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-[var(--color-muted)]">{invoice.invoiceNumber}</p>
-              <h1 className="font-serif text-2xl font-bold">
+              <h1 className="font-display text-2xl font-bold">
                 Pay {invoice.creatorName ?? "invoice"}
               </h1>
             </div>
@@ -94,7 +96,7 @@ export default function PublicPayPage() {
                 <span>${formatUSDC(item.quantity * item.unitPrice)}</span>
               </div>
             ))}
-            <div className="flex justify-between pt-2 font-serif text-xl font-bold">
+            <div className="flex justify-between pt-2 font-display text-xl font-bold">
               <span>Total due</span>
               <span>${formatUSDC(total)} USDC</span>
             </div>
@@ -115,14 +117,16 @@ export default function PublicPayPage() {
           {canPay && (
             <div className="mt-8">
               <BridgePayment
-                recipientArcAddress={invoice.creatorAddress}
+                recipientSolanaAddress={invoice.creatorAddress}
                 amount={total.toFixed(2)}
                 isLoggedIn={!!payerWalletId}
                 payerWalletId={payerWalletId}
-                arcBalance={payerArcBalance}
+                payerSolanaAddress={payerSolanaAddress}
+                solanaBalance={payerSolanaBalance}
                 buttonLabel={`Pay $${formatUSDC(total)} USDC now`}
                 onSuccess={async (steps) => {
                   const txHash =
+                    steps.find((s) => s.name === "sol_transfer")?.explorerUrl ??
                     steps.find((s) => s.name === "arc_transfer")?.explorerUrl ??
                     steps.find((s) => s.name === "mint")?.explorerUrl ??
                     steps.find((s) => s.state === "success")?.explorerUrl ??
@@ -151,14 +155,14 @@ export default function PublicPayPage() {
               />
               <p className="mt-4 text-center text-xs text-[var(--color-muted)]">
                 {payerWalletId ? (
-                  <>Paying as your iPayX account, or use an external wallet.</>
+                  <>Paying as your Settlor account, or use an external wallet.</>
                 ) : (
                   <>
                     Have an account?{" "}
-                    <Link href="/login" className="font-semibold text-orange-600">
+                    <Link href="/login" className="font-semibold text-brand">
                       Sign in
                     </Link>{" "}
-                    to pay from your Arc balance.
+                    to pay from your Settlor balance.
                   </>
                 )}
               </p>

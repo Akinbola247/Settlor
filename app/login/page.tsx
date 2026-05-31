@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import IPayXLogo from "@/components/brand/IPayXLogo";
+import SettlorLogo from "@/components/brand/SettlorLogo";
 import { useCircleLoginBoot } from "@/components/auth/CircleLoginBoot";
 
 export default function LoginPage() {
@@ -23,22 +23,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="gradient-hero flex flex-col justify-between p-10 text-white lg:p-14">
-        <IPayXLogo href="/" variant="light" size="lg" className="[&_span]:text-2xl" />
-        <div>
-          <h1 className="font-serif text-4xl font-bold leading-tight lg:text-5xl">
+      <div className="gradient-hero relative flex flex-col justify-between overflow-hidden p-10 text-white lg:p-14">
+        <div className="pointer-events-none absolute inset-0 mesh-grid opacity-50" />
+        <div className="relative">
+          <SettlorLogo href="/" variant="light" size="lg" className="[&_span]:text-2xl" />
+        </div>
+        <div className="relative">
+          <h1 className="font-display text-4xl font-bold leading-tight lg:text-5xl">
             Take control of your USDC payments.
           </h1>
           <p className="mt-4 max-w-md text-lg text-slate-300">
-            Invoice clients, get paid from any chain, and hold a unified balance on Arc — powered by Circle.
+            Invoice clients, get paid from any chain, and hold a unified balance on Solana — powered by Circle.
           </p>
         </div>
-        <p className="text-xs text-slate-500">Secured by Circle W3S · Arc Testnet</p>
+        <p className="relative text-xs text-white/40">Secured by Circle W3S · Solana</p>
       </div>
 
       <div className="flex items-center justify-center bg-white p-8 lg:p-14">
         <div className="w-full max-w-md">
-          <h2 className="font-serif text-3xl font-bold text-[var(--color-ink)]">Sign in</h2>
+          <h2 className="font-display text-3xl font-bold text-[var(--color-ink)]">Sign in</h2>
           <p className="mt-2 text-sm text-[var(--color-muted)]">
             Sign in with email or Google to access your wallet and invoices.
           </p>
@@ -86,7 +89,7 @@ export default function LoginPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                     <button
                       type="button"
-                      className="font-medium text-orange-600 hover:underline disabled:opacity-50"
+                      className="font-medium text-brand hover:underline disabled:opacity-50"
                       disabled={!ready || loading}
                       onClick={() => void resendEmailOtp()}
                     >
@@ -150,7 +153,7 @@ export default function LoginPage() {
 
             <p className="text-center text-xs text-[var(--color-muted)]">
               By continuing you agree to our testnet terms. See{" "}
-              <Link href="/help" className="text-orange-600 hover:underline">
+              <Link href="/help" className="text-brand hover:underline">
                 Help
               </Link>{" "}
               for data handling in this POC.
@@ -158,7 +161,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-[var(--color-muted)]">
-            <Link href="/" className="font-semibold text-orange-600 hover:underline">
+            <Link href="/" className="font-semibold text-brand hover:underline">
               Home
             </Link>
             <Link href="/how-it-works" className="hover:text-[var(--color-ink)]">

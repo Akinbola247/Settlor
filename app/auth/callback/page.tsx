@@ -1,6 +1,6 @@
 "use client";
 
-import { IPayXLogoMark } from "@/components/brand/IPayXLogo";
+import { SettlorLogoMark } from "@/components/brand/SettlorLogo";
 import { useCircleLoginBoot } from "@/components/auth/CircleLoginBoot";
 
 /**
@@ -16,9 +16,9 @@ export default function AuthCallbackPage() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)] p-6">
       <div className="card max-w-md w-full p-8 text-center shadow-lg">
         <div className="mb-4 flex justify-center">
-          <IPayXLogoMark size="lg" />
+          <SettlorLogoMark size="lg" />
         </div>
-        <h1 className="font-serif text-xl font-bold">Finishing sign-in</h1>
+        <h1 className="font-display text-xl font-bold">Finishing sign-in</h1>
         {loading && (
           <>
             <div className="spinner mx-auto mt-6" />
