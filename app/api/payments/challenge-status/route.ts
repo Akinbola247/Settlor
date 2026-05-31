@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth";
 import {
   waitForChallengeSignature,
   waitForChallengeTxHash,
+  waitForSignTransactionChallenge,
 } from "@/lib/circle-challenges";
 
 export async function GET(request: Request) {
@@ -20,13 +21,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (kind === "signature") {
-      const signature = await waitForChallengeSignature(
+    if (kind === "signature" || kind === "sign-transaction") {
+      const result = await waitForSignTransactionChallenge(
         session.circleUserToken,
         challengeId,
         { maxAttempts: 1, intervalMs: 0 }
       );
-      return NextResponse.json({ status: "complete", signature });
+      return NextResponse.json({ status: "complete", ...result });
     }
 
     const txHash = await waitForChallengeTxHash(

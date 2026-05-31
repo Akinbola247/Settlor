@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthSession } from "@/lib/auth";
-import { createArcTransferChallenge } from "@/lib/circle-transfer";
-import { extractUsdcBalance, getWalletBalances } from "@/lib/circle";
+import { createSolanaTransferChallenge } from "@/lib/circle-transfer";
+import {
+  extractUsdcBalance,
+  extractUsdcTokenId,
+  getWalletBalances,
+  listCircleWallets,
+  resolveSettlementWallet,
+} from "@/lib/circle";
+import { pickSettlementWallet } from "@/lib/circle-wallet";
 import {
   applyDeviceIdToSession,
   getFreshCircleCredentials,
   resolvePaymentCredentials,
 } from "@/lib/circle-session";
 import { validateCircleUserToken } from "@/lib/circle";
+import { ensureUsdcAta } from "@/lib/ensure-usdc-ata";
+import { sponsorSolIfNeeded } from "@/lib/gas-sponsor";
+import { isSolanaAddress } from "@/lib/address-utils";
 
 const bodySchema = z.object({
   destinationAddress: z.string().min(10),
@@ -64,28 +74,63 @@ export async function POST(request: Request) {
       fresh = refreshed;
     }
 
-    const walletId = bodyWalletId ?? session.user.walletId;
+    const wallets = await listCircleWallets(fresh.userToken);
+    const settlement = pickSettlementWallet(wallets);
+    const walletId = bodyWalletId ?? settlement?.id ?? session.user.walletId;
     if (!walletId) {
-      return NextResponse.json({ error: "No Arc wallet on account" }, { status: 400 });
+      return NextResponse.json({ error: "No Solana wallet on account" }, { status: 400 });
     }
 
-    const balances = await getWalletBalances(fresh.userToken, walletId);
+    const resolved = await resolveSettlementWallet(fresh.userToken, walletId);
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+
+    const balances = await getWalletBalances(fresh.userToken, resolved.wallet.id);
     if (!balances) {
       return NextResponse.json({ error: "Could not read balance" }, { status: 500 });
     }
-    const balance = parseFloat(extractUsdcBalance(balances));
-    const payAmount = parseFloat(amount);
-    if (payAmount > balance) {
+
+    const tokenId = extractUsdcTokenId(balances);
+    if (!tokenId) {
       return NextResponse.json(
-        { error: `Insufficient Arc balance ($${balance.toFixed(2)} available)` },
+        { error: "No USDC found on your Solana wallet. Deposit USDC first." },
         { status: 400 }
       );
     }
 
-    const result = await createArcTransferChallenge(fresh.userToken, {
-      walletId,
+    const balance = parseFloat(extractUsdcBalance(balances));
+    const payAmount = parseFloat(amount);
+    if (payAmount > balance) {
+      return NextResponse.json(
+        { error: `Insufficient balance ($${balance.toFixed(2)} USDC available)` },
+        { status: 400 }
+      );
+    }
+
+    if (!isSolanaAddress(destinationAddress)) {
+      return NextResponse.json({ error: "Invalid recipient Solana address" }, { status: 400 });
+    }
+
+    try {
+      await sponsorSolIfNeeded(resolved.wallet.address);
+    } catch (err) {
+      console.warn("[/api/payments/transfer] gas sponsor:", err);
+    }
+
+    try {
+      await ensureUsdcAta(destinationAddress);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not prepare recipient USDC account";
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
+
+    const result = await createSolanaTransferChallenge(fresh.userToken, {
+      walletId: resolved.wallet.id,
       destinationAddress,
       amount,
+      tokenId,
     });
 
     if ("error" in result) {

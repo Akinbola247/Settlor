@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       status: "complete",
       txHash,
       explorerUrl,
-      steps: [{ name: "arc_transfer", state: "success", explorerUrl }],
+      steps: [{ name: "sol_transfer", state: "success", explorerUrl }],
     });
   } catch {
     return NextResponse.json({ status: "pending" });
