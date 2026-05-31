@@ -5,6 +5,8 @@ import { getCookie, setCookie } from "cookies-next";
 import { SocialLoginProvider } from "@circle-fin/w3s-pw-web-sdk/dist/src/types";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import { circleErrorMessage } from "@/lib/circle";
+import { pickSettlementWallet, type CircleWalletRecord } from "@/lib/circle-wallet";
+import { CIRCLE_SOLANA_BLOCKCHAIN } from "@/lib/solana-config";
 import {
   clearCircleDeviceState,
   clearDeviceTokenCookies,
@@ -45,11 +47,7 @@ function restoreSocialLoginProviderFromUrl(): void {
   }
 }
 
-export type WalletInfo = {
-  id: string;
-  address: string;
-  blockchain: string;
-};
+export type WalletInfo = CircleWalletRecord;
 
 export { clearCircleDeviceState, isDeviceCredentialError } from "@/lib/circle-device";
 
@@ -125,7 +123,7 @@ export type LoginCompleteResult = {
   profile?: { email?: string; displayName?: string };
 };
 
-const CIRCLE_CREDS_STORAGE_KEY = "ipayx_circle_creds";
+const CIRCLE_CREDS_STORAGE_KEY = "settlor_circle_creds";
 
 export function storeClientCircleCreds(creds: {
   userToken: string;
@@ -388,12 +386,64 @@ async function listWallets(userToken: string): Promise<WalletInfo[]> {
   return (data.wallets ?? []) as WalletInfo[];
 }
 
+async function executeWalletChallenge(sdk: W3SSdk, challengeId: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    sdk.execute(challengeId, (error) => {
+      if (error) {
+        reject(new Error((error as any).message ?? "Wallet challenge failed"));
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+async function waitForSettlementWallet(
+  userToken: string,
+  maxAttempts = 12
+): Promise<WalletInfo | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const wallets = await listWallets(userToken).catch(() => [] as WalletInfo[]);
+    const settlement = pickSettlementWallet(wallets);
+    if (settlement) return settlement;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return null;
+}
+
+async function createSolanaWalletViaChallenge(
+  sdk: W3SSdk,
+  userToken: string
+): Promise<WalletInfo | null> {
+  const res = await fetch("/api/endpoints", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "createSolanaWallet", userToken }),
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    const existing = pickSettlementWallet(await listWallets(userToken).catch(() => []));
+    if (existing) return existing;
+    throw new Error(circleErrorMessage(data, "Failed to create Solana wallet"));
+  }
+
+  if (data.challengeId) {
+    await executeWalletChallenge(sdk, String(data.challengeId));
+  }
+
+  return waitForSettlementWallet(userToken);
+}
+
 export async function setupWalletAfterLogin(
   sdk: W3SSdk,
   userToken: string,
   encryptionKey: string
 ): Promise<WalletInfo> {
   syncSdkAuth(sdk, userToken, encryptionKey);
+
+  let settlement = pickSettlementWallet(await listWallets(userToken));
+  if (settlement) return settlement;
 
   const initRes = await fetch("/api/endpoints", {
     method: "POST",
@@ -402,40 +452,25 @@ export async function setupWalletAfterLogin(
   });
   const initData = await initRes.json();
 
-  // Already initialized — skip challenge, list wallets
-  if (!initRes.ok && initData.code === 155106) {
-    const wallets = await listWallets(userToken);
-    if (!wallets.length) throw new Error("No wallet found for your account");
-    return wallets[0];
-  }
-
-  if (!initRes.ok) {
-    throw new Error(circleErrorMessage(initData, "Failed to initialize wallet"));
-  }
-
-  if (initData.challengeId) {
+  if (initRes.ok && initData.challengeId) {
     try {
-      await new Promise<void>((resolve, reject) => {
-        sdk.execute(initData.challengeId, (error) => {
-          if (error) {
-            reject(new Error((error as any).message ?? "Wallet challenge failed"));
-          } else {
-            resolve();
-          }
-        });
-      });
-      await new Promise((r) => setTimeout(r, 2000));
-    } catch (executeErr) {
-      // Wallet may already exist if challenge was consumed (e.g. double mount)
-      const wallets = await listWallets(userToken).catch(() => [] as WalletInfo[]);
-      if (wallets.length > 0) return wallets[0];
-      throw executeErr;
+      await executeWalletChallenge(sdk, String(initData.challengeId));
+    } catch {
+      settlement = pickSettlementWallet(await listWallets(userToken).catch(() => []));
+      if (settlement) return settlement;
     }
+
+    settlement = await waitForSettlementWallet(userToken, 5);
+    if (settlement) return settlement;
   }
 
-  const wallets = await listWallets(userToken);
-  if (!wallets.length) throw new Error("No wallet found after setup");
-  return wallets[0];
+  // Already initialized with legacy chains (e.g. Arc) — add SOL-DEVNET wallet
+  settlement = await createSolanaWalletViaChallenge(sdk, userToken);
+  if (settlement) return settlement;
+
+  throw new Error(
+    `Could not set up your ${CIRCLE_SOLANA_BLOCKCHAIN} wallet. Complete the Circle popup if shown, then sign in again.`
+  );
 }
 
 export async function createServerSession(

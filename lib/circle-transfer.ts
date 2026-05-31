@@ -1,12 +1,13 @@
 import { circleFetch, circleErrorMessage } from "@/lib/circle";
-import { arcTxExplorerUrl } from "@/lib/arc-config";
+import { solanaExplorerTxUrl } from "@/lib/solana-config";
 
-export async function createArcTransferChallenge(
+export async function createSolanaTransferChallenge(
   userToken: string,
   input: {
     walletId: string;
     destinationAddress: string;
     amount: string;
+    tokenId: string;
   }
 ): Promise<{ challengeId: string } | { error: string }> {
   const { ok, data, raw } = await circleFetch<{ challengeId: string }>(
@@ -20,7 +21,7 @@ export async function createArcTransferChallenge(
         destinationAddress: input.destinationAddress,
         amounts: [input.amount],
         feeLevel: "MEDIUM",
-        blockchain: "ARC-TESTNET",
+        tokenId: input.tokenId,
       },
     }
   );
@@ -95,10 +96,10 @@ export async function waitForTransferCompletion(
     if (ch.status === "COMPLETE" && ch.transactionId) {
       const tx = await getCircleTransaction(userToken, ch.transactionId);
       if (tx.txHash) {
-        return { txHash: tx.txHash, explorerUrl: arcTxExplorerUrl(tx.txHash) };
+        return { txHash: tx.txHash, explorerUrl: solanaExplorerTxUrl(tx.txHash) };
       }
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new Error("Transfer confirmation timed out. Check your Arc wallet activity.");
+  throw new Error("Transfer confirmation timed out. Check your Solana wallet activity.");
 }
