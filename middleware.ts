@@ -18,14 +18,16 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
-    const session = request.cookies.get("ipayx_session");
+    const session =
+      request.cookies.get("settlor_session") ?? request.cookies.get("ipayx_session");
     if (!session?.value) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
 
   if (pathname.startsWith("/dashboard")) {
-    const session = request.cookies.get("ipayx_session");
+    const session =
+      request.cookies.get("settlor_session") ?? request.cookies.get("ipayx_session");
     if (!session?.value) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
