@@ -4,11 +4,13 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import {
-  SUPPORTED_CHAINS,
+  SETTLEMENT_CHAIN,
   SupportedChainId,
   STEP_ORDER,
   userFacingStepTitle,
+  withdrawDestinationChains,
 } from "@/app/lib/bridge.types";
+import { SETTLEMENT_CHAIN_LABEL } from "@/lib/solana-config";
 import {
   assertMinCrossChainTransferAmount,
   chainName,
@@ -16,7 +18,8 @@ import {
   runOutboundBridge,
   type LiveBridgeStep,
 } from "@/lib/bridge-client";
-import { executeArcTransfer } from "@/lib/arc-transfer-client";
+import { executeSolanaTransfer } from "@/lib/solana-transfer-client";
+import { isSolanaAddress, isValidWalletAddress } from "@/lib/address-utils";
 import { formatUSDC } from "@/lib/utils";
 import { isValidEvmAddress, shortenAddress } from "@/lib/transfer-utils";
 import TransferStepBar from "./TransferStepBar";
@@ -26,28 +29,25 @@ type Step = 1 | 2 | 3 | 4;
 
 type Props = {
   myWalletId: string;
-  myArcAddress: string;
+  mySolanaAddress: string;
   usdcBalance: string;
   onComplete?: () => void;
   onNetworkChange?: (chain: SupportedChainId) => void;
 };
 
-const ARC_CHAIN: SupportedChainId = "Arc_Testnet";
-
-const OUTBOUND_CHAINS = SUPPORTED_CHAINS.filter(
-  (c) => c.isTestnet && c.type === "evm" && c.id !== ARC_CHAIN
-);
+const WITHDRAW_CHAINS = withdrawDestinationChains();
 
 export default function TransferPanel({
   myWalletId,
-  myArcAddress,
+  mySolanaAddress,
   usdcBalance,
   onComplete,
   onNetworkChange,
 }: Props) {
   const sdkRef = useRef<W3SSdk | null>(null);
   const [step, setStep] = useState<Step>(1);
-  const [toChain, setToChain] = useState<SupportedChainId>(ARC_CHAIN);
+  const [toChain, setToChain] = useState<SupportedChainId>(SETTLEMENT_CHAIN);
+  const walletAddress = mySolanaAddress;
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,28 +58,31 @@ export default function TransferPanel({
 
   const balanceNum = parseFloat(usdcBalance) || 0;
   const amountNum = parseFloat(amount) || 0;
-  const isArc = toChain === ARC_CHAIN;
+  const isSettlement = toChain === SETTLEMENT_CHAIN;
 
   const selectNetwork = (chain: SupportedChainId) => {
     setToChain(chain);
     onNetworkChange?.(chain);
   };
   const networkLabel = chainName(toChain);
-  const addressValid = isValidEvmAddress(toAddress);
+  const addressValid = isValidWalletAddress(toAddress);
   const isSelf =
-    addressValid && toAddress.trim().toLowerCase() === myArcAddress.toLowerCase();
+    addressValid &&
+    (isSolanaAddress(toAddress)
+      ? toAddress.trim() === walletAddress
+      : toAddress.trim().toLowerCase() === walletAddress.toLowerCase());
   const insufficient = amountNum > balanceNum;
   const belowCrossChainMin =
-    !isArc && amountNum > 0 && amountNum < MIN_CROSS_CHAIN_TRANSFER_USD;
+    !isSettlement && amountNum > 0 && amountNum < MIN_CROSS_CHAIN_TRANSFER_USD;
   const canContinueStep1 = addressValid && !isSelf;
   const canContinueStep2 =
     amountNum > 0 &&
     !insufficient &&
-    (isArc || amountNum >= MIN_CROSS_CHAIN_TRANSFER_USD);
+    (isSettlement || amountNum >= MIN_CROSS_CHAIN_TRANSFER_USD);
 
   const reset = () => {
     setStep(1);
-    setToChain(ARC_CHAIN);
+    setToChain(SETTLEMENT_CHAIN);
     setToAddress("");
     setAmount("");
     setLoading(false);
@@ -101,8 +104,8 @@ export default function TransferPanel({
     setBridgeSteps([]);
 
     try {
-      if (isArc) {
-        await executeArcTransfer(sdkRef, {
+      if (isSettlement) {
+        await executeSolanaTransfer(sdkRef, {
           destinationAddress: toAddress.trim(),
           amount,
           walletId: myWalletId,
@@ -114,7 +117,7 @@ export default function TransferPanel({
           toChain,
           recipientAddress: toAddress.trim(),
           amount,
-          arcAddress: myArcAddress,
+          solanaAddress: walletAddress,
           walletId: myWalletId,
           sdkRef,
           onStatusMessage: setStatusMessage,
@@ -144,13 +147,13 @@ export default function TransferPanel({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">
             ✓
           </div>
-          <h2 className="mt-4 font-serif text-xl font-bold text-emerald-900">Transfer sent</h2>
+          <h2 className="mt-4 font-display text-xl font-bold text-emerald-900">Transfer sent</h2>
           <p className="mt-2 text-sm text-emerald-800">
             ${amount} USDC → {shortenAddress(toAddress)} on {networkLabel}
           </p>
           <p className="mt-1 text-xs text-emerald-700/80">Balance updates automatically above.</p>
         </div>
-        {!isArc && bridgeSteps.length > 0 && (
+        {!isSettlement && bridgeSteps.length > 0 && (
           <div className="space-y-2">
             {STEP_ORDER.map((id) => {
               const s = bridgeSteps.find((x) => x.name === id);
@@ -166,7 +169,7 @@ export default function TransferPanel({
                       href={s.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-semibold text-orange-600"
+                      className="text-xs font-semibold text-brand"
                     >
                       View
                     </a>
@@ -197,7 +200,7 @@ export default function TransferPanel({
           <p className="mt-4 font-medium">{statusMessage ?? "Sending your transfer…"}</p>
           <p className="mt-2 text-xs text-[var(--color-muted)]">Do not close this tab.</p>
         </div>
-        {!isArc && bridgeSteps.length > 0 && (
+        {!isSettlement && bridgeSteps.length > 0 && (
           <div className="space-y-2">
             {STEP_ORDER.map((id) => {
               const s = bridgeSteps.find((x) => x.name === id);
@@ -229,18 +232,18 @@ export default function TransferPanel({
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => selectNetwork(ARC_CHAIN)}
+                onClick={() => selectNetwork(SETTLEMENT_CHAIN)}
                 className={`rounded-xl border p-4 text-left transition ${
-                  isArc
-                    ? "border-orange-300 bg-orange-50 ring-2 ring-orange-100"
-                    : "border-[var(--color-border)] hover:border-orange-200 hover:bg-slate-50"
+                  isSettlement
+                    ? "border-brand bg-brand-subtle ring-2 ring-brand"
+                    : "border-[var(--color-border)] hover:border-brand hover:bg-slate-50"
                 }`}
               >
                 <span className="text-lg">◎</span>
-                <p className="mt-2 font-semibold">Arc</p>
-                <p className="text-xs text-[var(--color-muted)]">Fast · same network</p>
+                <p className="mt-2 font-semibold">Solana</p>
+                <p className="text-xs text-[var(--color-muted)]">Same chain · fast</p>
               </button>
-              {OUTBOUND_CHAINS.map((c) => (
+              {WITHDRAW_CHAINS.map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -268,13 +271,15 @@ export default function TransferPanel({
             <input
               id="transfer-to"
               className="field-input font-mono text-sm"
-              placeholder="0x…"
+              placeholder="Solana or 0x…"
               value={toAddress}
               onChange={(e) => setToAddress(e.target.value)}
               autoComplete="off"
             />
             {toAddress && !addressValid && (
-              <p className="mt-1 text-xs text-red-600">Enter a valid address (0x + 40 characters).</p>
+              <p className="mt-1 text-xs text-red-600">
+                Enter a valid Solana or EVM address for the selected network.
+              </p>
             )}
             {isSelf && (
               <p className="mt-1 text-xs text-red-600">That&apos;s your own address.</p>
@@ -312,7 +317,7 @@ export default function TransferPanel({
               </label>
               <button
                 type="button"
-                className="text-xs font-bold text-orange-600 hover:underline"
+                className="text-xs font-bold text-brand hover:underline"
                 onClick={setMaxAmount}
               >
                 Max
@@ -322,9 +327,9 @@ export default function TransferPanel({
               id="transfer-amount"
               className="field-input mt-1.5 text-lg font-semibold"
               type="number"
-              min={isArc ? "0.01" : String(MIN_CROSS_CHAIN_TRANSFER_USD)}
+              min={isSettlement ? "0.01" : String(MIN_CROSS_CHAIN_TRANSFER_USD)}
               step="0.01"
-              placeholder={isArc ? "0.00" : String(MIN_CROSS_CHAIN_TRANSFER_USD)}
+              placeholder={isSettlement ? "0.00" : String(MIN_CROSS_CHAIN_TRANSFER_USD)}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
@@ -339,10 +344,10 @@ export default function TransferPanel({
                 Minimum ${MIN_CROSS_CHAIN_TRANSFER_USD} USDC for cross-chain transfers.
               </p>
             )}
-            {!isArc && !belowCrossChainMin && (
+            {!isSettlement && !belowCrossChainMin && (
               <p className="mt-1 text-xs text-[var(--color-muted)]">
                 Minimum ${MIN_CROSS_CHAIN_TRANSFER_USD} USDC to other networks (protocol fees).
-                Use Arc Testnet for smaller amounts.
+                Use {SETTLEMENT_CHAIN_LABEL} for smaller same-chain sends.
               </p>
             )}
           </div>
@@ -371,7 +376,7 @@ export default function TransferPanel({
           <div className="card divide-y divide-[var(--color-border)] p-0 overflow-hidden">
             <div className="flex justify-between px-5 py-4 text-sm">
               <span className="text-[var(--color-muted)]">Amount</span>
-              <span className="font-serif text-lg font-bold">${amount}</span>
+              <span className="font-display text-lg font-bold">${amount}</span>
             </div>
             <div className="flex justify-between px-5 py-4 text-sm">
               <span className="text-[var(--color-muted)]">To</span>
@@ -387,7 +392,7 @@ export default function TransferPanel({
             </div>
           </div>
 
-          {!isArc && (
+          {!isSettlement && (
             <p className="text-xs text-[var(--color-muted)]">
               Transfers to other networks may take a few minutes.
             </p>
@@ -402,7 +407,7 @@ export default function TransferPanel({
             <button
               type="button"
               className="btn-accent flex-1"
-              disabled={!isArc && (parseFloat(amount) || 0) < MIN_CROSS_CHAIN_TRANSFER_USD}
+              disabled={!isSettlement && (parseFloat(amount) || 0) < MIN_CROSS_CHAIN_TRANSFER_USD}
               onClick={() => void runTransfer()}
             >
               Send ${amount || "0"}

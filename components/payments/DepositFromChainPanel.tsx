@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import {
   SupportedChainId,
-  bridgeSourceChains,
+  depositSourceChains,
   userFacingStepTitle,
 } from "@/app/lib/bridge.types";
 import type { PreBridgePhase } from "@/app/lib/bridge.types";
@@ -24,11 +25,18 @@ import BridgeStepProgress from "./BridgeStepProgress";
 type SendPhase = "form" | "prepare" | "bridging" | "done";
 
 type Props = {
-  myArcAddress: string;
+  myWalletId: string;
+  mySolanaAddress: string;
   onComplete?: () => void;
 };
 
-export default function DepositFromChainPanel({ myArcAddress, onComplete }: Props) {
+export default function DepositFromChainPanel({
+  myWalletId,
+  mySolanaAddress,
+  onComplete,
+}: Props) {
+  const sdkRef = useRef<W3SSdk | null>(null);
+  const settlementAddress = mySolanaAddress;
   const [amount, setAmount] = useState("");
   const [fromChain, setFromChain] = useState<SupportedChainId>("Ethereum_Sepolia");
   const [sendPhase, setSendPhase] = useState<SendPhase>("form");
@@ -43,7 +51,7 @@ export default function DepositFromChainPanel({ myArcAddress, onComplete }: Prop
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const bridgeFromChains = bridgeSourceChains();
+  const bridgeFromChains = depositSourceChains();
   const chainLabel = chainName(fromChain);
 
   const resetFlow = () => {
@@ -136,7 +144,7 @@ export default function DepositFromChainPanel({ myArcAddress, onComplete }: Prop
   }, [prePhase, fromChain]);
 
   const handleStartBridge = async () => {
-    if (!amount || !myArcAddress) return;
+    if (!amount || !settlementAddress) return;
     setError(null);
     setSendPhase("bridging");
     setLoading(true);
@@ -145,9 +153,15 @@ export default function DepositFromChainPanel({ myArcAddress, onComplete }: Prop
     try {
       const finalSteps = await runInboundBridge({
         fromChain,
-        recipientArcAddress: myArcAddress,
+        recipientSolanaAddress: settlementAddress,
         amount,
         walletProvider: walletProviderRef.current ?? undefined,
+        mintSigner: {
+          kind: "circle-w3s",
+          walletId: myWalletId,
+          solanaAddress: settlementAddress,
+          sdkRef,
+        },
         onStepUpdate: (s, active) => {
           setSteps(s);
           if (active) setStatusMessage(userFacingStepTitle(active));
@@ -201,6 +215,11 @@ export default function DepositFromChainPanel({ myArcAddress, onComplete }: Prop
             onChange={(e) => setAmount(e.target.value)}
           />
         </div>
+
+        <p className="text-xs text-[var(--color-muted)]">
+          MetaMask burns USDC on the source chain; your Settlor wallet signs the Solana mint via
+          Circle (same as withdraw).
+        </p>
 
         <div>
           <label className="field-label" htmlFor="deposit-from-chain">

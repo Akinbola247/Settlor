@@ -53,16 +53,16 @@ export default function BridgeStepProgress({
   return (
     <div className="space-y-4">
       {statusMessage && (
-        <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+        <div className="flex items-start gap-3 rounded-xl border border-brand bg-brand-subtle px-4 py-3">
           {loading && (
-            <span className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-orange-300 border-t-orange-600" />
+            <span className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-brand border-t-[var(--color-brand)]" />
           )}
-          <p className="text-sm font-medium text-orange-900">{statusMessage}</p>
+          <p className="text-sm font-medium text-brand-strong">{statusMessage}</p>
         </div>
       )}
 
       {showPre && prePhase && prePhase !== "ready" && (
-        <div className="rounded-xl border-2 border-dashed border-orange-300 bg-orange-50/50 p-4">
+        <div className="rounded-xl border-2 border-dashed border-brand bg-brand-subtle/50 p-4">
           <p className="font-semibold text-[var(--color-ink)]">{PRE_BRIDGE_GUIDE[prePhase].title}</p>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             {prePhase === "switch_chain" && chainLabel
@@ -93,7 +93,7 @@ export default function BridgeStepProgress({
                 className={cn(
                   "rounded-xl border px-4 py-3 transition-colors",
                   ui === "success" && "border-emerald-200 bg-emerald-50",
-                  ui === "active" && "border-orange-300 bg-orange-50 ring-2 ring-orange-100",
+                  ui === "active" && "border-brand bg-brand-subtle ring-2 ring-brand",
                   ui === "error" && "border-red-200 bg-red-50",
                   ui === "pending" && "border-slate-200 bg-white opacity-70"
                 )}
@@ -105,7 +105,7 @@ export default function BridgeStepProgress({
                     <p className="mt-0.5 text-xs text-[var(--color-muted)]">{guide.description}</p>
 
                     {ui === "active" && (
-                      <p className="mt-2 rounded-lg bg-white/80 px-2.5 py-2 text-xs font-medium text-orange-800 border border-orange-200">
+                      <p className="mt-2 rounded-lg bg-white/80 px-2.5 py-2 text-xs font-medium text-brand-strong border border-brand">
                         {guide.requiresWallet ? "🦊 " : "⏳ "}
                         {guide.signHint}
                       </p>
@@ -116,7 +116,7 @@ export default function BridgeStepProgress({
                         href={live.explorerUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-block text-xs font-semibold text-orange-600 hover:underline"
+                        className="mt-2 inline-block text-xs font-semibold text-brand hover:underline"
                       >
                         View on explorer →
                       </a>
@@ -154,7 +154,7 @@ function StepIcon({ index, ui }: { index: number; ui: string }) {
   if (ui === "active") {
     return (
       <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-orange-200 border-t-orange-600" />
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-[var(--color-brand)]" />
       </span>
     );
   }
