@@ -11,7 +11,7 @@ export async function GET() {
       },
     });
   } catch (e) {
-    console.error("[iPayX] /api/metrics:", e);
+    console.error("[Settlor] /api/metrics:", e);
     return NextResponse.json({ error: "Failed to load metrics" }, { status: 500 });
   }
 }

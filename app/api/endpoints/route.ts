@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
 import { circleFetch, circleErrorMessage, getWalletBalances, extractUsdcBalance } from "@/lib/circle";
+import { createSolanaWalletChallenge } from "@/lib/circle-challenges";
+import { CIRCLE_SOLANA_BLOCKCHAIN } from "@/lib/solana-config";
 
 export async function POST(request: Request) {
   try {
@@ -81,8 +83,8 @@ export async function POST(request: Request) {
             userToken,
             body: {
               idempotencyKey: crypto.randomUUID(),
-              accountType: "SCA",
-              blockchains: ["ARC-TESTNET"],
+              accountType: "EOA",
+              blockchains: [CIRCLE_SOLANA_BLOCKCHAIN],
             },
           }
         );
@@ -107,6 +109,14 @@ export async function POST(request: Request) {
           );
         }
         return NextResponse.json(data);
+      }
+
+      case "createSolanaWallet": {
+        const result = await createSolanaWalletChallenge(userToken);
+        if ("error" in result) {
+          return NextResponse.json({ error: result.error }, { status: 502 });
+        }
+        return NextResponse.json({ challengeId: result.challengeId });
       }
 
       case "getTokenBalance": {
