@@ -4,15 +4,15 @@ import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 
 export const metadata = {
   title: `How it works — ${SITE.name}`,
-  description: "Sign in, invoice, collect cross-chain USDC, settle on Arc.",
+  description: "Sign in, invoice, collect cross-chain USDC, settle on Solana.",
 };
 
 export default function HowItWorksPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-24">
       <ScrollReveal immediate>
-        <p className="text-sm font-bold uppercase tracking-widest text-orange-600">How it works</p>
-        <h1 className="mt-3 font-serif text-4xl font-bold tracking-tight">From invoice to Arc balance</h1>
+        <p className="text-sm font-bold uppercase tracking-widest text-brand">How it works</p>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">From invoice to Solana balance</h1>
         <p className="mt-6 max-w-2xl text-lg text-[var(--color-muted)]">
           This guide walks through the full flow for vendors and payers. Bookmark it if you&apos;re onboarding
           a client for the first time.
@@ -26,11 +26,11 @@ export default function HowItWorksPage() {
             className="border-b border-[var(--color-border)] pb-10 last:border-0"
           >
             <ScrollReveal delay={i * 70} className="flex gap-6">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 font-serif text-lg font-bold text-orange-700">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-muted font-display text-lg font-bold text-brand-strong">
                 {s.step}
               </span>
               <div>
-                <h2 className="font-serif text-2xl font-bold">{s.title}</h2>
+                <h2 className="font-display text-2xl font-bold">{s.title}</h2>
                 <p className="mt-3 leading-relaxed text-[var(--color-muted)]">{s.body}</p>
               </div>
             </ScrollReveal>
@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
 
       <section className="mt-16">
         <ScrollReveal>
-          <h2 className="font-serif text-2xl font-bold">Feature deep dive</h2>
+          <h2 className="font-display text-2xl font-bold">Feature deep dive</h2>
         </ScrollReveal>
         <div className="mt-8 space-y-6">
           {PRODUCT_FEATURES.slice(0, 4).map((f, i) => (
@@ -55,11 +55,11 @@ export default function HowItWorksPage() {
       </section>
 
       <ScrollReveal delay={100}>
-        <section className="mt-16 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <h3 className="font-semibold text-amber-900">Payer tip: Arc-only receives</h3>
-          <p className="mt-2 text-sm text-amber-800">
-            If someone sends you USDC on Ethereum or Base to your Arc address, it won&apos;t show in iPayX.
-            Use Payments → Receive and share your Arc Testnet address for native Arc USDC only.
+        <section className="mt-16 rounded-2xl border border-brand bg-brand-subtle p-6">
+          <h3 className="font-semibold text-[var(--color-ink)]">Payer tip: receive on Solana only</h3>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">
+            Settlor settles on Solana. Share your Solana Devnet address from Payments → Receive for native
+            USDC. Cross-chain payers can use MetaMask on an EVM testnet and CCTP will mint to the vendor.
           </p>
         </section>
       </ScrollReveal>

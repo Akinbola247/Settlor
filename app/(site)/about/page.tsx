@@ -11,14 +11,14 @@ export default function AboutPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:py-24">
       <ScrollReveal immediate>
-        <p className="text-sm font-bold uppercase tracking-widest text-orange-600">About us</p>
-        <h1 className="mt-3 font-serif text-4xl font-bold tracking-tight">Why we built iPayX</h1>
+        <p className="text-sm font-bold uppercase tracking-widest text-brand">About us</p>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">Why we built Settlor</h1>
         <p className="mt-6 text-lg leading-relaxed text-[var(--color-muted)]">{ABOUT.mission}</p>
         <p className="mt-6 leading-relaxed text-[var(--color-muted)]">{ABOUT.story}</p>
       </ScrollReveal>
 
       <ScrollReveal delay={80}>
-        <h2 className="mt-14 font-serif text-2xl font-bold">What we believe</h2>
+        <h2 className="mt-14 font-display text-2xl font-bold">What we believe</h2>
       </ScrollReveal>
       <div className="mt-8 grid gap-6 sm:grid-cols-3">
         {ABOUT.values.map((v, i) => (
@@ -32,9 +32,9 @@ export default function AboutPage() {
       </div>
 
       <ScrollReveal delay={100}>
-        <h2 className="mt-14 font-serif text-2xl font-bold">Technology partners</h2>
+        <h2 className="mt-14 font-display text-2xl font-bold">Technology partners</h2>
         <p className="mt-4 text-sm leading-relaxed text-[var(--color-muted)]">
-          iPayX is a proof-of-concept built on Circle programmable wallets, Arc Network settlement, and
+          Settlor is a proof-of-concept built on Circle programmable wallets, Solana settlement, and
           Cross-Chain Transfer Protocol (CCTP) for USDC. We follow UX patterns familiar from Base, Coinbase
           Wallet, and modern L2 onboarding — clarity first, jargon second.
         </p>
