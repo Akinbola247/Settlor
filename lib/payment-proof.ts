@@ -13,9 +13,14 @@ export function validatePaymentProof(
     return { ok: false, error: "Payment proof required" };
   }
 
-  const arcTransfer = steps.find((s) => s.name === "arc_transfer");
-  if (arcTransfer?.state === "success") {
-    const reference = (arcTransfer.explorerUrl ?? txHash).trim();
+  const solTransfer = steps.find(
+    (s) => s.name === "sol_transfer" || s.name === "solana_transfer"
+  );
+  const legacy = steps.find((s) => s.name === "arc_transfer");
+
+  const direct = solTransfer ?? legacy;
+  if (direct?.state === "success") {
+    const reference = (direct.explorerUrl ?? txHash).trim();
     if (reference.length < 8) {
       return { ok: false, error: "Invalid transaction reference" };
     }
@@ -24,7 +29,10 @@ export function validatePaymentProof(
 
   const mint = steps.find((s) => s.name === "mint");
   if (!mint || mint.state !== "success") {
-    return { ok: false, error: "Payment not confirmed (mint or Arc transfer did not succeed)" };
+    return {
+      ok: false,
+      error: "Payment not confirmed (mint or Solana transfer did not succeed)",
+    };
   }
 
   const reference = (mint.explorerUrl ?? txHash).trim();

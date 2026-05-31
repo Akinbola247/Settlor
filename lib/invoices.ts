@@ -9,6 +9,7 @@ import {
   ZERO_RECIPIENT_ADDRESS,
   type InvoiceUser,
 } from "@/lib/invoice-access";
+import { normalizeWalletAddress, walletAddressesEqual } from "@/lib/address-utils";
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -103,8 +104,9 @@ export async function createInvoiceForUser(
   }
 
   const status = data.status ?? "pending";
-  const recipientAddress =
-    data.recipientAddress?.toLowerCase() || ZERO_RECIPIENT_ADDRESS;
+  const recipientAddress = data.recipientAddress
+    ? normalizeWalletAddress(data.recipientAddress)
+    : ZERO_RECIPIENT_ADDRESS;
   const recipientEmail = normalizeEmail(data.recipientEmail) ?? undefined;
 
   const payeeUser = recipientEmail
@@ -116,7 +118,7 @@ export async function createInvoiceForUser(
       invoiceNumber: await nextInvoiceNumber(),
       status,
       creatorId: userId,
-      creatorAddress: creatorAddress.toLowerCase(),
+      creatorAddress: normalizeWalletAddress(creatorAddress),
       creatorName: data.creatorName,
       recipientAddress:
         payeeUser?.walletAddress ?? recipientAddress,
@@ -150,7 +152,7 @@ export async function createInvoiceForUser(
       dueDate: dto.dueDate,
     }).then((r) => {
       if (!r.ok && !r.skipped) {
-        console.warn("[iPayX] Invoice email failed:", r.error);
+        console.warn("[Settlor] Invoice email failed:", r.error);
       }
     });
   }
@@ -165,7 +167,7 @@ export async function linkInvoicesToPayee(user: {
   walletAddress: string;
 }): Promise<{ linked: number }> {
   const normalizedEmail = normalizeEmail(user.email);
-  const wallet = user.walletAddress.toLowerCase();
+  const wallet = normalizeWalletAddress(user.walletAddress);
   let linked = 0;
 
   if (normalizedEmail) {
@@ -206,7 +208,7 @@ export async function linkInvoicesToPayeeByEmail(
 }
 
 export async function getInvoicesForUser(user: InvoiceUser) {
-  const normalized = user.walletAddress.toLowerCase();
+  const normalized = normalizeWalletAddress(user.walletAddress);
   const email = normalizeEmail(user.email);
 
   const receivedOr: { recipientAddress?: string; recipientEmail?: string; recipientUserId?: string }[] = [
@@ -294,7 +296,7 @@ export async function updateInvoice(
   });
   if (!inv) return null;
 
-  const isCreator = inv.creatorAddress === user.walletAddress.toLowerCase();
+  const isCreator = walletAddressesEqual(inv.creatorAddress, user.walletAddress);
   const isRecipient = isInvoicePayee(inv, user);
 
   if (patch.status === "paid") {
@@ -329,7 +331,7 @@ export async function updateInvoice(
         dueDate: updated.dueDate?.toISOString() ?? null,
         type: "paid",
       }).then((r) => {
-        if (!r.ok && !r.skipped) console.warn("[iPayX] Paid notification email failed:", r.error);
+        if (!r.ok && !r.skipped) console.warn("[Settlor] Paid notification email failed:", r.error);
       });
     }
   }
@@ -339,7 +341,7 @@ export async function updateInvoice(
 
 export async function deleteInvoice(id: string, userAddress: string) {
   const inv = await prisma.invoice.findUnique({ where: { id } });
-  if (!inv || inv.creatorAddress !== userAddress.toLowerCase()) return false;
+  if (!inv || !walletAddressesEqual(inv.creatorAddress, userAddress)) return false;
   await prisma.invoice.delete({ where: { id } });
   return true;
 }
@@ -379,7 +381,7 @@ export async function markInvoicePaidPublic(
         dueDate: updated.dueDate?.toISOString() ?? null,
         type: "paid",
       }).then((r) => {
-        if (!r.ok && !r.skipped) console.warn("[iPayX] Paid notification email failed:", r.error);
+        if (!r.ok && !r.skipped) console.warn("[Settlor] Paid notification email failed:", r.error);
       });
     }
   }

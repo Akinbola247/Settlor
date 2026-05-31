@@ -1,3 +1,5 @@
+import { normalizeWalletAddress, walletAddressesEqual } from "@/lib/address-utils";
+
 /** Placeholder address when invoice is addressed by email only */
 export const ZERO_RECIPIENT_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -20,7 +22,7 @@ export type InvoiceUser = {
 };
 
 export function isInvoiceCreator(inv: InvoiceParty, user: InvoiceUser): boolean {
-  return inv.creatorAddress.toLowerCase() === user.walletAddress.toLowerCase();
+  return walletAddressesEqual(inv.creatorAddress, user.walletAddress);
 }
 
 /** Payee: linked user id, wallet matches, or invoice was sent to their login email */
@@ -29,10 +31,10 @@ export function isInvoicePayee(inv: InvoiceParty, user: InvoiceUser): boolean {
     return true;
   }
 
-  const addr = user.walletAddress.toLowerCase();
-  const invAddr = inv.recipientAddress.toLowerCase();
-
-  if (invAddr === addr && invAddr !== ZERO_RECIPIENT_ADDRESS) {
+  if (
+    inv.recipientAddress !== ZERO_RECIPIENT_ADDRESS &&
+    walletAddressesEqual(inv.recipientAddress, user.walletAddress)
+  ) {
     return true;
   }
 
