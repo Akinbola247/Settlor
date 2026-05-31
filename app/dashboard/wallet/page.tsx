@@ -21,7 +21,7 @@ export default function WalletPage() {
   return (
     <DashboardPageShell size="default" centeredHeader>
       <header className="mb-8 text-center">
-        <h1 className="font-serif text-3xl font-bold">Wallet</h1>
+        <h1 className="font-display text-3xl font-bold">Wallet</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">Your USDC balance and address.</p>
       </header>
 
@@ -30,7 +30,7 @@ export default function WalletPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
             Balance
           </p>
-          <p className="mt-2 font-serif text-4xl font-bold tracking-tight sm:text-5xl">${formatUSDC(balance)}</p>
+          <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl">${formatUSDC(balance)}</p>
           <p className="mt-1 text-sm text-slate-500">USDC</p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
@@ -62,8 +62,8 @@ export default function WalletPage() {
             </button>
           </div>
           <p className="mt-6 text-center text-xs text-slate-400 lg:text-left">
-            For deposits on Arc, see{" "}
-            <Link href="/dashboard/deposit" className="text-orange-300 hover:underline">
+            For cross-chain deposits, see{" "}
+            <Link href="/dashboard/deposit" className="text-brand-light hover:underline">
               Deposit
             </Link>
             .
@@ -72,7 +72,7 @@ export default function WalletPage() {
       </div>
 
       <div className="card mt-6 p-6">
-        <h2 className="font-serif text-lg font-bold">Details</h2>
+        <h2 className="font-display text-lg font-bold">Details</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
           <div>
             <dt className="text-xs font-semibold uppercase text-[var(--color-muted)]">Account</dt>
@@ -80,12 +80,12 @@ export default function WalletPage() {
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase text-[var(--color-muted)]">Network</dt>
-            <dd className="mt-1">Arc Testnet</dd>
+            <dd className="mt-1">Solana Devnet</dd>
           </div>
         </dl>
         <button
           type="button"
-          className="mt-4 text-xs font-semibold text-orange-600"
+          className="mt-4 text-xs font-semibold text-brand"
           onClick={() => void refresh()}
         >
           Refresh balance
@@ -95,10 +95,10 @@ export default function WalletPage() {
       <div className="card mt-6 border-red-100 p-6">
 
         <div className="mt-6 border-t border-red-100 pt-6">
-          <h3 className="text-sm font-semibold text-red-900">Delete iPayX account</h3>
+          <h3 className="text-sm font-semibold text-red-900">Delete Settlor account</h3>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
-            Removes your profile, sessions, and invoice links from iPayX. Your Circle wallet and
-            any USDC on Arc Testnet remain on-chain. You can sign in again later, but that may
+            Removes your profile, sessions, and invoice links from Settlor. Your Circle wallet and
+            any USDC on Solana remain on-chain. You can sign in again later, but that may
             create a new app profile.
           </p>
           {deleteError && (
@@ -110,7 +110,7 @@ export default function WalletPage() {
             disabled={deleting}
             onClick={async () => {
               const ok = window.confirm(
-                "Delete your iPayX account on this app? This cannot be undone. Your Circle wallet and funds are not deleted from the blockchain."
+                "Delete your Settlor account on this app? This cannot be undone. Your Circle wallet and funds are not deleted from the blockchain."
               );
               if (!ok) return;
               setDeleting(true);
@@ -130,7 +130,7 @@ export default function WalletPage() {
               }
             }}
           >
-            {deleting ? "Deleting…" : "Delete my iPayX account"}
+            {deleting ? "Deleting…" : "Delete my Settlor account"}
           </button>
         </div>
       </div>

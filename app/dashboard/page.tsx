@@ -46,7 +46,7 @@ export default function DashboardOverviewPage() {
   return (
     <>
       <div className="mb-6 sm:mb-8">
-        <h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
           {greeting}, {firstName}
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">Invoices and USDC balance at a glance.</p>
@@ -62,7 +62,7 @@ export default function DashboardOverviewPage() {
               USDC
             </span>
           </div>
-          <p className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+          <p className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
             ${balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="mt-2 text-sm text-[var(--color-muted)]">USDC</p>
@@ -101,20 +101,20 @@ export default function DashboardOverviewPage() {
 
       <div className="mb-6 grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-5 space-y-4">
-          <Link href="/dashboard/wallet" className="card block p-6 transition hover:border-orange-200">
+          <Link href="/dashboard/wallet" className="card block p-6 transition hover:border-brand">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-lg font-bold">Wallet</h2>
+              <h2 className="font-display text-lg font-bold">Wallet</h2>
               <span className="badge badge-paid text-[10px]">Active</span>
             </div>
-            <p className="mt-2 font-serif text-2xl font-bold">${formatUSDC(balance)}</p>
+            <p className="mt-2 font-display text-2xl font-bold">${formatUSDC(balance)}</p>
             <p className="mt-1 font-mono text-xs text-[var(--color-muted)] truncate">
               {wallet.address}
             </p>
-            <p className="mt-3 text-xs font-semibold text-orange-600">View wallet →</p>
+            <p className="mt-3 text-xs font-semibold text-brand">View wallet →</p>
           </Link>
 
           <div className="card p-6">
-            <h2 className="font-serif text-lg font-bold">Bills to pay</h2>
+            <h2 className="font-display text-lg font-bold">Bills to pay</h2>
             {outstandingOwed > 0 ? (
               <>
                 <p className="mt-1 text-sm text-amber-700 font-medium">
@@ -125,7 +125,7 @@ export default function DashboardOverviewPage() {
                 </div>
                 <Link
                   href="/dashboard/invoices"
-                  className="mt-3 inline-block text-xs font-semibold text-orange-600"
+                  className="mt-3 inline-block text-xs font-semibold text-brand"
                 >
                   Pay invoices →
                 </Link>
@@ -144,25 +144,25 @@ export default function DashboardOverviewPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-4">
           <div className="card p-6">
-            <h2 className="font-serif text-lg font-bold">Quick links</h2>
+            <h2 className="font-display text-lg font-bold">Quick links</h2>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                <Link href="/dashboard/invoices" className="font-semibold text-orange-600 hover:underline">
+                <Link href="/dashboard/invoices" className="font-semibold text-brand hover:underline">
                   Manage invoices
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/payments" className="font-semibold text-orange-600 hover:underline">
+                <Link href="/dashboard/payments" className="font-semibold text-brand hover:underline">
                   Payments
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/deposit" className="font-semibold text-orange-600 hover:underline">
+                <Link href="/dashboard/deposit" className="font-semibold text-brand hover:underline">
                   Deposit
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/wallet" className="font-semibold text-orange-600 hover:underline">
+                <Link href="/dashboard/wallet" className="font-semibold text-brand hover:underline">
                   Wallet
                 </Link>
               </li>
@@ -185,7 +185,7 @@ export default function DashboardOverviewPage() {
           currentUserAddress={wallet.address}
           currentUserEmail={user?.email}
           payerWalletId={wallet.id}
-          payerArcBalance={usdcBalance}
+          payerSolanaBalance={usdcBalance}
           onPaid={() => {
             setSelected(null);
             void refresh();

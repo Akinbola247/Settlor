@@ -19,7 +19,7 @@ export default function ActivityPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="font-serif text-3xl font-bold">Activity</h1>
+        <h1 className="font-display text-3xl font-bold">Activity</h1>
         <p className="text-sm text-[var(--color-muted)]">Recent invoice and payment events</p>
       </div>
 

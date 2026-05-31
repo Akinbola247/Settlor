@@ -22,9 +22,10 @@ export default function DepositPage() {
     <DashboardPageShell size="full">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight lg:text-4xl">Deposit</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight lg:text-4xl">Deposit</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--color-muted)]">
-            Add USDC from another network or receive directly on Arc.
+            Bridge USDC from Arc, Ethereum, Base, and other networks into your Solana balance, or
+            receive directly on Solana.
           </p>
         </div>
         <Link href="/dashboard/transfer" className="btn-outline text-sm shrink-0">
@@ -37,28 +38,31 @@ export default function DepositPage() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:gap-8">
         <section className="card overflow-hidden shadow-sm" aria-labelledby="deposit-from-chain-title">
           <div className="border-b border-[var(--color-border)] bg-slate-50/80 px-6 py-4">
-            <h2 id="deposit-from-chain-title" className="font-serif text-lg font-bold">
+            <h2 id="deposit-from-chain-title" className="font-display text-lg font-bold">
               From another network
             </h2>
-            <p className="text-xs text-[var(--color-muted)]">Use your external wallet</p>
+            <p className="text-xs text-[var(--color-muted)]">
+              Arc, Ethereum, Base, Arbitrum, Avalanche — via MetaMask
+            </p>
           </div>
           <div className="p-6 lg:p-8">
             <DepositFromChainPanel
-              myArcAddress={wallet.address}
+              myWalletId={wallet.id}
+              mySolanaAddress={wallet.address}
               onComplete={handleDepositComplete}
             />
           </div>
         </section>
 
-        <section className="card overflow-hidden shadow-sm" aria-labelledby="deposit-arc-title">
+        <section className="card overflow-hidden shadow-sm" aria-labelledby="deposit-solana-title">
           <div className="border-b border-[var(--color-border)] bg-slate-50/80 px-6 py-4">
-            <h2 id="deposit-arc-title" className="font-serif text-lg font-bold">
-              On Arc already
+            <h2 id="deposit-solana-title" className="font-display text-lg font-bold">
+              Receive on Solana
             </h2>
             <p className="text-xs text-[var(--color-muted)]">Share your address with the sender</p>
           </div>
           <div className="p-6 lg:p-8">
-            <DepositReceivePanel myArcAddress={wallet.address} />
+            <DepositReceivePanel mySolanaAddress={wallet.address} />
           </div>
         </section>
       </div>
