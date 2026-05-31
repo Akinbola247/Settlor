@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import { Bricolage_Grotesque, Manrope } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "iPayX — Cross-chain USDC invoicing",
-  description: "Send invoices, get paid in USDC from any chain. Unified balance on Arc.",
+  title: "Settlor — Cross-chain USDC invoicing",
+  description: "Send invoices, get paid in USDC from any chain. Unified balance on Solana.",
   icons: {
-    icon: "/ipayx-icon-orange.svg",
-    apple: "/ipayx-icon-orange.svg",
+    icon: "/settlor-icon.svg",
+    apple: "/settlor-icon.svg",
   },
 };
 
@@ -28,9 +28,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} ${playfair.variable}`}>
-        {children}
-      </body>
+      <body className={`${manrope.variable} ${bricolage.variable}`}>{children}</body>
     </html>
   );
 }
