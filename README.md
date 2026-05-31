@@ -15,7 +15,7 @@ Circle covers many wallet operations, but Solana still needs **SOL for rent and 
 | `PLATFORM_SOL_PRIVATE_KEY` | JSON byte array (`solana-keygen`) or base58 secret — **fee payer** wallet |
 | `HELIUS_API_KEY` | Reliable devnet/mainnet RPC ([helius.dev](https://helius.dev)) |
 
-On login, `/api/auth/me` may drip **~0.02 SOL** to the user’s Circle wallet if balance is low.
+
 
 **What to open / fund**
 
