@@ -55,7 +55,7 @@ export async function sendInvoiceNotification(
 
   if (!apiKey) {
     console.info(
-      "[iPayX email] RESEND_API_KEY not set — would send:",
+      "[Settlor email] RESEND_API_KEY not set — would send:",
       subject,
       "→",
       payload.to,
@@ -87,7 +87,7 @@ export async function sendInvoiceNotification(
 
     if (!res.ok) {
       const error = data.message ?? data.name ?? `Resend HTTP ${res.status}`;
-      console.error("[iPayX email] Resend error:", error, data);
+      console.error("[Settlor email] Resend error:", error, data);
       return { ok: false, error };
     }
 
@@ -95,11 +95,11 @@ export async function sendInvoiceNotification(
       return { ok: false, error: "Resend returned no message id" };
     }
 
-    console.info("[iPayX email] sent", data.id, subject, "→", payload.to);
+    console.info("[Settlor email] sent", data.id, subject, "→", payload.to);
     return { ok: true, id: data.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown email error";
-    console.error("[iPayX email] failed:", message);
+    console.error("[Settlor email] failed:", message);
     return { ok: false, error: message };
   }
 }

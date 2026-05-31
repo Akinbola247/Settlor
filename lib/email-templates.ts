@@ -11,7 +11,7 @@ type TemplateInput = {
 
 function brandLogoUrl(): string {
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  return `${base}/ipayx-icon-orange.svg`;
+  return `${base}/settlor-icon.svg`;
 }
 
 function layout(title: string, body: string) {
@@ -26,11 +26,11 @@ function layout(title: string, body: string) {
         <tr><td style="background:#0f172a;padding:24px 28px;">
           <table cellpadding="0" cellspacing="0"><tr>
             <td style="vertical-align:middle;padding-right:12px;">
-              <img src="${logoUrl}" alt="iPayX" width="40" height="40" style="display:block;border-radius:10px;" />
+              <span style="display:inline-block;width:40px;height:40px;line-height:40px;text-align:center;background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:10px;color:#fff;font-weight:700;font-size:18px;">S</span>
             </td>
             <td style="vertical-align:middle;">
-              <span style="font-size:20px;font-weight:700;color:#fff;">iPayX</span>
-              <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">Cross-chain USDC invoicing</p>
+              <span style="font-size:20px;font-weight:700;color:#fff;">Settlor</span>
+              <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">Invoice in USDC. Settle on Solana.</p>
             </td>
           </tr></table>
         </td></tr>
@@ -39,7 +39,7 @@ function layout(title: string, body: string) {
           ${body}
         </td></tr>
         <tr><td style="padding:16px 28px 24px;border-top:1px solid #e2e8f0;">
-          <p style="margin:0;font-size:11px;color:#94a3b8;">You received this because of an invoice on iPayX.</p>
+          <p style="margin:0;font-size:11px;color:#94a3b8;">You received this because of an invoice on Settlor.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -61,7 +61,7 @@ export function invoiceSentEmail(input: TemplateInput) {
       <strong style="color:#ea580c;">$${formatUSDC(input.amount)} USDC</strong>.
     </p>
     ${due}
-    <p style="margin:0 0 24px;color:#64748b;font-size:14px;">Pay from MetaMask on any supported testnet — funds arrive on Arc.</p>
+    <p style="margin:0 0 24px;color:#64748b;font-size:14px;">Pay from MetaMask or Phantom on supported testnets — funds settle on Solana.</p>
     <a href="${input.payUrl}" style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:12px;">View &amp; pay invoice</a>
     <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;word-break:break-all;">Or copy this link:<br>${input.payUrl}</p>
   `;
@@ -80,7 +80,7 @@ export function invoicePaidEmail(input: TemplateInput) {
       <strong>${escapeHtml(input.invoiceNumber)}</strong>
       (<strong style="color:#059669;">$${formatUSDC(input.amount)} USDC</strong>).
     </p>
-    <p style="margin:0;color:#64748b;font-size:14px;">The payment was recorded on iPayX.</p>
+    <p style="margin:0;color:#64748b;font-size:14px;">The payment was recorded on Settlor.</p>
   `;
 
   return {

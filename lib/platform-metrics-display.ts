@@ -23,7 +23,7 @@ export function buildMetricCards(metrics: PlatformMetrics) {
     {
       value: formatMetricCount(metrics.paymentsCompleted),
       label: "Payments completed",
-      hint: "Invoices marked paid on Arc Testnet",
+      hint: "Invoices marked paid on Solana",
     },
     {
       value: `$${formatUSDC(metrics.volumeUsdc)}`,
