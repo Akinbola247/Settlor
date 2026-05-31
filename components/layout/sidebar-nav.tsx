@@ -35,7 +35,7 @@ export const QUICK_ACTIONS: NavItem[] = [
 ];
 
 export const ACCOUNT_NAV: NavItem[] = [
-  { href: "/dashboard/wallet", label: "Arc wallet", icon: IconWallet },
+  { href: "/dashboard/wallet", label: "Solana wallet", icon: IconWallet },
 ];
 
 export type ComingSoonItem = {

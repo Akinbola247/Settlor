@@ -11,7 +11,7 @@ export default function DashboardBreadcrumb() {
   return (
     <div className="min-w-0 flex-1">
       <nav className="flex items-center gap-2 text-xs text-[var(--color-muted)]" aria-label="Breadcrumb">
-        <Link href="/dashboard" className="font-medium hover:text-orange-600">
+        <Link href="/dashboard" className="font-medium hover:text-brand">
           Dashboard
         </Link>
         {pathname !== "/dashboard" && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import IPayXLogo from "@/components/brand/IPayXLogo";
+import SettlorLogo from "@/components/brand/SettlorLogo";
 import {
   ACCOUNT_NAV,
   COMING_SOON_NAV,
@@ -35,22 +35,22 @@ export default function DashboardSidebar({
   return (
     <aside
       className={cn(
-        "sidebar flex h-full w-[min(280px,88vw)] shrink-0 flex-col border-r border-[var(--color-border)] bg-white sm:w-[260px]",
+        "sidebar flex h-full w-[min(280px,88vw)] shrink-0 flex-col border-r border-[var(--color-sidebar-border)] bg-[var(--color-sidebar)] sm:w-[260px]",
         className
       )}
     >
-      <div className="relative flex h-16 shrink-0 items-center border-b border-[var(--color-border)]">
+      <div className="relative flex h-16 shrink-0 items-center border-b border-[var(--color-sidebar-border)]">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="flex h-16 flex-1 items-center px-5 transition hover:bg-slate-50"
+          className="flex h-16 flex-1 items-center px-5 transition hover:bg-white/5"
         >
-          <IPayXLogo href={null} size="md" />
+          <SettlorLogo href={null} size="md" variant="light" />
         </Link>
         {showClose && onClose && (
           <button
             type="button"
-            className="icon-btn absolute right-3 top-1/2 -translate-y-1/2 lg:hidden"
+            className="icon-btn absolute right-3 top-1/2 -translate-y-1/2 border-white/10 bg-white/5 text-white hover:bg-white/10 lg:hidden"
             onClick={onClose}
             aria-label="Close menu"
           >
@@ -76,7 +76,7 @@ export default function DashboardSidebar({
                   <Icon className="h-5 w-5 shrink-0" />
                   <span className="flex-1">{item.label}</span>
                   {badge != null && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                    <span className="rounded-full bg-[var(--color-brand)]/20 px-2 py-0.5 text-xs font-bold text-[var(--color-brand-light)]">
                       {badge}
                     </span>
                   )}
@@ -132,11 +132,11 @@ export default function DashboardSidebar({
               <li key={item.label}>
                 <span
                   title={item.hint}
-                  className="sidebar-link-disabled flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400"
+                  className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--color-sidebar-text)] opacity-50"
                 >
                   <Icon className="h-5 w-5 shrink-0 opacity-60" />
                   <span className="flex-1">{item.label}</span>
-                  <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                  <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
                     Soon
                   </span>
                 </span>
@@ -146,16 +146,16 @@ export default function DashboardSidebar({
         </ul>
       </nav>
 
-      <div className="space-y-1 border-t border-[var(--color-border)] p-3">
+      <div className="space-y-1 border-t border-[var(--color-sidebar-border)] p-3">
         <Link
           href="/help"
           {...linkProps}
-          className="sidebar-link w-full text-[var(--color-muted)]"
+          className="sidebar-link w-full"
         >
           <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-bold">?</span>
           <span>Help</span>
         </Link>
-        <Link href="/" {...linkProps} className="sidebar-link w-full text-[var(--color-muted)]">
+        <Link href="/" {...linkProps} className="sidebar-link w-full">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs">⌂</span>
           <span>Home</span>
         </Link>
@@ -165,7 +165,7 @@ export default function DashboardSidebar({
             onNavigate?.();
             onLogout();
           }}
-          className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700"
+          className="sidebar-link w-full text-red-400 hover:bg-red-500/10 hover:text-red-300"
         >
           <IconLogout className="h-5 w-5 shrink-0" />
           <span>Sign out</span>

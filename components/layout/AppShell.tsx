@@ -114,15 +114,15 @@ function AppShellInner({
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               href="/dashboard/wallet"
-              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-1.5 pr-2 transition hover:border-orange-200 sm:gap-3 sm:pr-3"
+              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-1.5 pr-2 transition hover:border-brand sm:gap-3 sm:pr-3"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white sm:h-9 sm:w-9">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-brand text-xs font-bold text-[var(--color-ink)] sm:h-9 sm:w-9">
                 {initials}
               </div>
               <div className="hidden min-w-0 sm:block">
                 <p className="truncate text-sm font-semibold leading-tight">{userName ?? "Account"}</p>
                 <p className="max-w-[140px] truncate text-xs text-[var(--color-muted)]">
-                  {userEmail ?? "Arc Testnet"}
+                  {userEmail ?? "Solana"}
                 </p>
               </div>
             </Link>
