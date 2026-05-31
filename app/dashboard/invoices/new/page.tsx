@@ -19,13 +19,13 @@ export default function NewInvoicePage() {
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <nav className="mb-2 text-xs text-[var(--color-muted)]">
-            <Link href="/dashboard/invoices" className="hover:text-orange-600">
+            <Link href="/dashboard/invoices" className="hover:text-brand">
               Invoices
             </Link>
             <span className="mx-2">/</span>
             <span className="text-[var(--color-ink)]">New</span>
           </nav>
-          <h1 className="font-serif text-3xl font-bold tracking-tight lg:text-4xl">New invoice</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight lg:text-4xl">New invoice</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--color-muted)]">
             Bill a client in USDC. Send now or save as a draft.
           </p>
@@ -57,9 +57,9 @@ export default function NewInvoicePage() {
               balance.
             </p>
           </div>
-          <div className="rounded-2xl border border-orange-200 bg-orange-50/80 p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-800">Draft</p>
-            <p className="mt-2 text-sm text-orange-950/90">
+          <div className="rounded-2xl border border-brand bg-brand-subtle/80 p-5">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-strong">Draft</p>
+            <p className="mt-2 text-sm text-[var(--color-muted)]">
               Save without sending — finish and send later from Sent invoices.
             </p>
           </div>

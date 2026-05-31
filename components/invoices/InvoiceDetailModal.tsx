@@ -12,7 +12,7 @@ type Props = {
   currentUserAddress: string;
   currentUserEmail?: string | null;
   payerWalletId?: string;
-  payerArcBalance?: string;
+  payerSolanaBalance?: string;
   onPaid: (txSteps: { name: string; explorerUrl?: string }[]) => void;
   onClose: () => void;
 };
@@ -22,7 +22,7 @@ export default function InvoiceDetailModal({
   currentUserAddress,
   currentUserEmail,
   payerWalletId,
-  payerArcBalance = "0",
+  payerSolanaBalance = "0",
   onPaid,
   onClose,
 }: Props) {
@@ -39,7 +39,7 @@ export default function InvoiceDetailModal({
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="text-xs text-[var(--color-muted)]">{invoice.invoiceNumber}</p>
-            <h2 className="font-serif text-xl font-bold">
+            <h2 className="font-display text-xl font-bold">
               {isPayer ? `From ${invoice.creatorName ?? "Vendor"}` : `To ${invoice.recipientName}`}
             </h2>
           </div>
@@ -55,7 +55,7 @@ export default function InvoiceDetailModal({
               <span className="font-medium">${formatUSDC(item.quantity * item.unitPrice)}</span>
             </div>
           ))}
-          <div className="flex justify-between pt-2 font-serif text-lg font-bold">
+          <div className="flex justify-between pt-2 font-display text-lg font-bold">
             <span>Total</span>
             <span>${formatUSDC(total)} USDC</span>
           </div>
@@ -71,14 +71,15 @@ export default function InvoiceDetailModal({
           <div className="mt-6 border-t border-[var(--color-border)] pt-6">
             <h3 className="mb-3 font-semibold">Pay invoice</h3>
             <BridgePayment
-              recipientArcAddress={invoice.creatorAddress}
+              recipientSolanaAddress={invoice.creatorAddress}
               amount={total.toFixed(2)}
               isLoggedIn={!!payerWalletId}
               payerWalletId={payerWalletId}
-              arcBalance={payerArcBalance}
+              solanaBalance={payerSolanaBalance}
               buttonLabel={`Pay $${formatUSDC(total)} USDC`}
               onSuccess={async (steps) => {
                 const txHash =
+                  steps.find((s) => s.name === "sol_transfer")?.explorerUrl ??
                   steps.find((s) => s.name === "arc_transfer")?.explorerUrl ??
                   steps.find((s) => s.name === "mint")?.explorerUrl ??
                   steps.find((s) => s.state === "success")?.explorerUrl ??
@@ -113,7 +114,7 @@ export default function InvoiceDetailModal({
           <div className="mt-4 text-sm text-emerald-700">
             Paid {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : ""}
             {invoice.txHash && (
-              <a href={invoice.txHash} target="_blank" rel="noopener noreferrer" className="ml-2 text-orange-600">
+              <a href={invoice.txHash} target="_blank" rel="noopener noreferrer" className="ml-2 text-brand">
                 View tx →
               </a>
             )}

@@ -72,7 +72,7 @@ function InvoicesContent() {
   const viewTitle = view === "received" ? "Bills to pay" : "Invoices you sent";
   const viewDescription =
     view === "received"
-      ? "Invoices from vendors and clients — pay with your Arc balance or an external wallet."
+      ? "Invoices from vendors and clients — pay from your Settlor balance or an external wallet."
       : "Track what you billed, share pay links, and see who has paid.";
 
   return (
@@ -84,7 +84,7 @@ function InvoicesContent() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-2xl font-bold sm:text-3xl">Invoices</h1>
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Invoices</h1>
           <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">
             Bills you owe and invoices you sent.
           </p>
@@ -108,12 +108,12 @@ function InvoicesContent() {
       <div
         className={cn(
           "card mb-4 overflow-hidden border-l-4",
-          view === "received" ? "border-l-orange-500" : "border-l-slate-700"
+          view === "received" ? "border-l-[var(--color-brand)]" : "border-l-slate-700"
         )}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] bg-slate-50/80 px-5 py-3">
           <div>
-            <h2 className="font-serif text-lg font-bold">{viewTitle}</h2>
+            <h2 className="font-display text-lg font-bold">{viewTitle}</h2>
             <p className="text-xs text-[var(--color-muted)]">{viewDescription}</p>
           </div>
           <p className="text-sm text-[var(--color-muted)]">
@@ -138,7 +138,7 @@ function InvoicesContent() {
                 "rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition",
                 filter === f
                   ? view === "received"
-                    ? "bg-orange-600 text-white"
+                    ? "bg-[var(--color-brand)] text-[var(--color-ink)]"
                     : "bg-slate-800 text-white"
                   : "border border-[var(--color-border)] bg-white text-slate-500 hover:border-slate-300"
               )}
@@ -155,7 +155,7 @@ function InvoicesContent() {
             <div
               className={cn(
                 "mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl",
-                view === "received" ? "bg-orange-50 text-orange-600" : "bg-slate-100 text-slate-600"
+                view === "received" ? "bg-brand-subtle text-brand" : "bg-slate-100 text-slate-600"
               )}
             >
               {view === "received" ? (
@@ -168,7 +168,7 @@ function InvoicesContent() {
                 </span>
               )}
             </div>
-            <p className="font-serif text-lg font-bold">
+            <p className="font-display text-lg font-bold">
               {view === "received" ? "Nothing to pay right now" : "No sent invoices yet"}
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-muted)]">
@@ -188,7 +188,7 @@ function InvoicesContent() {
             {view === "received" && (
               <button
                 type="button"
-                className="btn-ghost mt-4 text-orange-600"
+                className="btn-ghost mt-4 text-brand"
                 onClick={() => handleViewChange("sent")}
               >
                 View sent invoices →
@@ -217,7 +217,7 @@ function InvoicesContent() {
                   key={inv.id}
                   className={cn(
                     "p-4",
-                    actionable && "bg-orange-50/40"
+                    actionable && "bg-brand-subtle/40"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -233,7 +233,7 @@ function InvoicesContent() {
                     <span className={getStatusBadgeClass(inv.status)}>{inv.status}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-serif text-xl font-bold tabular-nums">${formatUSDC(total)}</p>
+                    <p className="font-display text-xl font-bold tabular-nums">${formatUSDC(total)}</p>
                     <p className="text-xs text-[var(--color-muted)]">
                       Due {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}
                     </p>
@@ -293,7 +293,7 @@ function InvoicesContent() {
                       key={inv.id}
                       className={cn(
                         "border-b border-[var(--color-border)] last:border-0 transition hover:bg-slate-50/80",
-                        actionable && "bg-orange-50/30"
+                        actionable && "bg-brand-subtle/30"
                       )}
                     >
                       <td className="px-6 py-4 font-mono text-xs text-slate-600">
@@ -307,7 +307,7 @@ function InvoicesContent() {
                           <p className="text-xs text-[var(--color-muted)]">{inv.recipientEmail}</p>
                         )}
                         {inv.payUrl && view === "sent" && (
-                          <p className="max-w-[220px] truncate text-xs text-orange-600">
+                          <p className="max-w-[220px] truncate text-xs text-brand">
                             {inv.payUrl}
                           </p>
                         )}
@@ -333,7 +333,7 @@ function InvoicesContent() {
                         ) : (
                           <button
                             type="button"
-                            className="text-sm font-semibold text-orange-600 hover:underline"
+                            className="text-sm font-semibold text-brand hover:underline"
                             onClick={() => setSelected(inv)}
                           >
                             View
@@ -365,7 +365,7 @@ function InvoicesContent() {
           currentUserAddress={wallet.address}
           currentUserEmail={user?.email}
           payerWalletId={wallet.id}
-          payerArcBalance={usdcBalance}
+          payerSolanaBalance={usdcBalance}
           onPaid={() => {
             setSelected(null);
             void refresh();

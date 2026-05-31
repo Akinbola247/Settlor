@@ -67,8 +67,8 @@ export default function InvoiceViewTabs({
       sublabel: toPayDue > 0 ? `$${formatMoney(toPayDue)} due` : "Nothing due",
       icon: IconInbox,
       activeClass:
-        "border-orange-300 bg-orange-50/90 shadow-sm ring-1 ring-orange-200/80 text-[var(--color-ink)]",
-      iconActiveClass: "bg-orange-500 text-white",
+        "border-brand bg-brand-subtle/90 shadow-sm ring-1 ring-brand text-[var(--color-ink)]",
+      iconActiveClass: "bg-brand-subtle0 text-white",
     },
     {
       id: "sent",
@@ -117,7 +117,7 @@ export default function InvoiceViewTabs({
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2">
-                <span className={cn("font-serif text-lg font-bold", active && "text-[var(--color-ink)]")}>
+                <span className={cn("font-display text-lg font-bold", active && "text-[var(--color-ink)]")}>
                   {tab.label}
                 </span>
                 <span
@@ -125,7 +125,7 @@ export default function InvoiceViewTabs({
                     "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
                     active
                       ? tab.id === "received"
-                        ? "bg-orange-200 text-orange-900"
+                        ? "bg-brand-muted text-brand-strong"
                         : "bg-slate-300 text-slate-900"
                       : "bg-slate-100 text-slate-600"
                   )}
@@ -147,7 +147,7 @@ export default function InvoiceViewTabs({
               <span
                 className={cn(
                   "hidden h-2 w-2 shrink-0 rounded-full sm:block",
-                  tab.id === "received" ? "bg-orange-500" : "bg-slate-700"
+                  tab.id === "received" ? "bg-brand-subtle0" : "bg-slate-700"
                 )}
                 aria-hidden
               />

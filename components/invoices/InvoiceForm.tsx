@@ -80,7 +80,7 @@ export default function InvoiceForm({
   return (
     <div className="space-y-8">
       <section className="card p-6 sm:p-8">
-        <h2 className="font-serif text-lg font-bold">Client</h2>
+        <h2 className="font-display text-lg font-bold">Client</h2>
         <p className="mt-1 text-xs text-[var(--color-muted)]">Who you are billing</p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -141,12 +141,12 @@ export default function InvoiceForm({
       <section className="card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-serif text-lg font-bold">Line items</h2>
+            <h2 className="font-display text-lg font-bold">Line items</h2>
             <p className="text-xs text-[var(--color-muted)]">Amounts in USDC</p>
           </div>
           <button
             type="button"
-            className="text-sm font-semibold text-orange-600 hover:underline"
+            className="text-sm font-semibold text-brand hover:underline"
             onClick={() => setItems([...items, emptyItem()])}
           >
             + Add line
@@ -204,7 +204,7 @@ export default function InvoiceForm({
         </div>
         <div className="mt-6 flex items-end justify-between border-t border-[var(--color-border)] pt-6">
           <span className="text-sm font-medium text-[var(--color-muted)]">Total</span>
-          <p className="font-serif text-3xl font-bold">
+          <p className="font-display text-3xl font-bold">
             ${formatUSDC(total)} <span className="text-base font-sans text-slate-500">USDC</span>
           </p>
         </div>
