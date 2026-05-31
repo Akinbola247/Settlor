@@ -24,7 +24,7 @@ export default function FaqAccordion({ items }: { items: Item[] }) {
               <span
                 className={cn(
                   "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-xs transition",
-                  isOpen && "rotate-45 border-orange-200 bg-orange-50 text-orange-600"
+                  isOpen && "rotate-45 border-brand bg-brand-subtle text-brand"
                 )}
               >
                 +

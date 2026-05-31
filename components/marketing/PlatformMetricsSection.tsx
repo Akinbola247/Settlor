@@ -38,11 +38,11 @@ export default function PlatformMetricsSection({ initialMetrics }: Props) {
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <ScrollReveal className="max-w-2xl">
-          <p className="text-sm font-bold uppercase tracking-widest text-orange-600">
+          <p className="text-sm font-bold uppercase tracking-widest text-brand">
             Platform activity
           </p>
-          <h2 className="mt-3 font-serif text-3xl font-bold lg:text-4xl">
-            Live growth on iPayX Testnet
+          <h2 className="mt-3 font-display text-3xl font-bold lg:text-4xl">
+            Live growth on Settlor Testnet
           </h2>
           <p className="mt-4 text-[var(--color-muted)] leading-relaxed">
             Real counts from this environment — invoices, payments, and accounts as teams use the
@@ -54,7 +54,7 @@ export default function PlatformMetricsSection({ initialMetrics }: Props) {
           {cards.map((card, i) => (
             <ScrollReveal key={card.label} delay={i * 70}>
               <div className="card h-full p-6">
-                <p className="font-serif text-3xl font-bold text-[var(--color-brand)] tabular-nums">
+                <p className="font-display text-3xl font-bold text-[var(--color-brand)] tabular-nums">
                   {card.value}
                 </p>
                 <p className="mt-2 font-semibold">{card.label}</p>
@@ -78,7 +78,7 @@ export default function PlatformMetricsSection({ initialMetrics }: Props) {
             )}
           </span>
           <span className="rounded-full bg-white px-3 py-1 border border-[var(--color-border)]">
-            Arc Testnet · POC
+            Solana Devnet · POC
           </span>
         </ScrollReveal>
       </div>

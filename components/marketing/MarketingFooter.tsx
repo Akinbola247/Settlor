@@ -25,7 +25,7 @@ export default function MarketingFooter() {
           <div className="lg:col-span-2">
             <Logo href="/" />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--color-muted)]">
-              Cross-chain USDC invoicing with unified settlement on Arc. Powered by Circle programmable
+              Cross-chain USDC invoicing with unified settlement on Solana. Powered by Circle programmable
               wallets and CCTP.
             </p>
           </div>
@@ -37,7 +37,7 @@ export default function MarketingFooter() {
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-[var(--color-muted)] transition hover:text-orange-600"
+                      className="text-sm text-[var(--color-muted)] transition hover:text-brand"
                     >
                       {l.label}
                     </Link>
@@ -48,8 +48,8 @@ export default function MarketingFooter() {
           ))}
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-[var(--color-border)] pt-8 text-xs text-[var(--color-muted)] sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} iPayX. Testnet POC — not financial advice.</p>
-          <p>Circle · Arc Network · CCTP</p>
+          <p>© {new Date().getFullYear()} Settlor. Testnet POC — not financial advice.</p>
+          <p>Circle · Solana · CCTP</p>
         </div>
       </div>
     </footer>

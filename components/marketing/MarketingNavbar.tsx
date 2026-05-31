@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_LINKS } from "@/lib/marketing-content";
-import Logo from "./Logo";
+import SettlorLogo from "@/components/brand/SettlorLogo";
 import MarketingAuthActions from "./MarketingAuthActions";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export default function MarketingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isHome = pathname === "/";
+  const onDarkHero = isHome && !scrolled;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -30,15 +31,20 @@ export default function MarketingNavbar() {
     return href;
   };
 
+  const isNavLinkActive = (href: string) =>
+    pathname === href || (href === "/#product" && isHome);
+
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
-        scrolled ? "marketing-nav-scrolled border-b border-[var(--color-border)]" : "bg-transparent"
+        "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300",
+        onDarkHero
+          ? "border-b border-white/10 bg-transparent"
+          : "marketing-nav-scrolled"
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo href="/" />
+        <SettlorLogo href="/" variant={onDarkHero ? "light" : "default"} />
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
           {NAV_LINKS.map((link) => (
@@ -47,9 +53,13 @@ export default function MarketingNavbar() {
               href={navHref(link.href)}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium transition",
-                pathname === link.href || (link.href === "/#product" && isHome)
-                  ? "text-[var(--color-ink)]"
-                  : "text-[var(--color-muted)] hover:bg-slate-100 hover:text-[var(--color-ink)]"
+                onDarkHero
+                  ? isNavLinkActive(link.href)
+                    ? "text-white"
+                    : "text-white/85 hover:bg-white/10 hover:text-white"
+                  : isNavLinkActive(link.href)
+                    ? "text-[var(--color-ink)]"
+                    : "text-[var(--color-muted)] hover:bg-[var(--color-brand-subtle)] hover:text-[var(--color-ink)]"
               )}
             >
               {link.label}
@@ -57,11 +67,11 @@ export default function MarketingNavbar() {
           ))}
         </nav>
 
-        <MarketingAuthActions />
+        <MarketingAuthActions onDark={onDarkHero} />
 
         <button
           type="button"
-          className="icon-btn md:hidden"
+          className={cn("icon-btn md:hidden", onDarkHero && "border-white/20 bg-white/10 text-white hover:bg-white/15")}
           aria-expanded={mobileOpen}
           aria-label="Menu"
           onClick={() => setMobileOpen((o) => !o)}
@@ -83,7 +93,7 @@ export default function MarketingNavbar() {
               <Link
                 key={link.href}
                 href={navHref(link.href)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-ink)] hover:bg-slate-50"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-brand-subtle)]"
               >
                 {link.label}
               </Link>
