@@ -2,11 +2,12 @@
 import type { SupportedChainId } from "@/app/lib/bridge.types";
 import { SUPPORTED_CHAINS } from "@/app/lib/bridge.types";
 import {
-  ARC_TESTNET_CHAIN_ID_HEX,
-  ARC_TESTNET_METAMASK_PARAMS,
-  ARC_USDC_ADDRESS,
-  arcTxExplorerUrl,
-} from "@/lib/arc-config";
+  SETTLEMENT_CHAIN_ID,
+  SETTLEMENT_CHAIN_LABEL,
+  USDC_DECIMALS,
+  USDC_MINT,
+  solanaExplorerTxUrl,
+} from "@/lib/solana-config";
 import { BRIDGE_USDC_ADDRESS, METAMASK_ADD_CHAIN } from "@/lib/bridge-chain-config";
 import {
   createBridgeHttpTransport,
@@ -28,7 +29,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 const CHAIN_IDS: Partial<Record<SupportedChainId, string>> = {
-  Arc_Testnet: ARC_TESTNET_CHAIN_ID_HEX,
+  Arc_Testnet: "0x4cef52",
   Ethereum_Sepolia: "0xaa36a7",
   Base_Sepolia: "0x14a34",
   Arbitrum_Sepolia: "0x66eee",
@@ -47,9 +48,28 @@ export type LiveBridgeStep = {
   errorMessage?: string;
 };
 
-export function getEthereumProvider(): any {
+export function getMetaMaskProvider(): any {
   if (typeof window === "undefined") return null;
-  return (window as any).ethereum ?? null;
+  const w = window as any;
+  const eth = w.ethereum;
+  if (!eth) return null;
+
+  const providers: any[] | undefined = eth.providers;
+  if (Array.isArray(providers) && providers.length > 0) {
+    const metamask = providers.find((p) => p?.isMetaMask && !p?.isPhantom);
+    if (metamask) return metamask;
+  }
+
+  if (eth.isMetaMask && !eth.isPhantom) return eth;
+  if (eth.isMetaMask) return eth;
+  if (!eth.isPhantom) return eth;
+
+  return null;
+}
+
+/** @deprecated Prefer getMetaMaskProvider — Phantom can hijack window.ethereum. */
+export function getEthereumProvider(): any {
+  return getMetaMaskProvider();
 }
 
 export function chainName(chainId: SupportedChainId): string {
@@ -58,10 +78,10 @@ export function chainName(chainId: SupportedChainId): string {
 
 /** Connect MetaMask and return selected accounts */
 export async function connectWallet(): Promise<{ accounts: string[]; provider: any }> {
-  const eth = getEthereumProvider();
+  const eth = getMetaMaskProvider();
   if (!eth) {
     throw new Error(
-      "MetaMask not detected. Install the MetaMask browser extension, then refresh this page."
+      "MetaMask not detected. Install the MetaMask browser extension (disable Phantom as default EVM wallet if both are installed), then refresh."
     );
   }
   const accounts: string[] = await withTimeout(
@@ -119,10 +139,7 @@ export async function switchWalletChain(
     });
   } catch (switchErr: any) {
     if (switchErr?.code === 4902) {
-      const addParams =
-        fromChain === "Arc_Testnet"
-          ? ARC_TESTNET_METAMASK_PARAMS
-          : METAMASK_ADD_CHAIN[fromChain];
+      const addParams = METAMASK_ADD_CHAIN[fromChain];
       if (!addParams) {
         throw new Error(`Add ${name} to MetaMask (Networks), then try again.`);
       }
@@ -219,17 +236,75 @@ export async function readNativeBalanceOnChain(
   return parseFloat(formatEther(raw));
 }
 
+/** Who signs the Solana CCTP mint (Solana Devnet does not support forwarder on destination). */
+export type InboundSolanaMintSigner =
+  | {
+      kind: "circle-w3s";
+      walletId: string;
+      solanaAddress: string;
+      sdkRef: { current: import("@circle-fin/w3s-pw-web-sdk").W3SSdk | null };
+    }
+  | { kind: "platform"; sponsorAddress: string }
+  | { kind: "phantom" };
+
 export type RunInboundBridgeParams = {
   fromChain: SupportedChainId;
-  recipientArcAddress: string;
+  /** Vendor Circle Solana wallet (base58). */
+  recipientSolanaAddress: string;
   amount: string;
   /** When set, skips a second wallet connect (deposit prepare flow). */
   walletProvider?: any;
+  /** Defaults to Phantom (invoice pay). Use circle-w3s for dashboard deposit. */
+  mintSigner?: InboundSolanaMintSigner;
   onStepUpdate: (steps: LiveBridgeStep[], activeStep?: string) => void;
   onStatusMessage?: (message: string) => void;
 };
 
-/** Run CCTP bridge from MetaMask source chain → Arc */
+async function createInboundSolanaMintAdapter(
+  mintSigner: InboundSolanaMintSigner,
+  onStatusMessage?: (message: string) => void
+): Promise<{ adapter: any; address: string }> {
+  const { createSolanaKitAdapterFromProvider } = await import("@circle-fin/adapter-solana-kit");
+  const { createSolanaRpc } = await import("@solana/kit");
+  const { solanaRpcUrl } = await import("@/lib/solana-config");
+
+  if (mintSigner.kind === "circle-w3s") {
+    const { createW3sSolanaKitAdapter } = await import("@/lib/w3s-solana-kit-signer");
+    onStatusMessage?.("Preparing Solana mint (Circle)…");
+    const adapter = await createW3sSolanaKitAdapter({
+      solanaAddress: mintSigner.solanaAddress,
+      walletId: mintSigner.walletId,
+      sdkRef: mintSigner.sdkRef,
+    });
+    return { adapter, address: mintSigner.solanaAddress };
+  }
+
+  if (mintSigner.kind === "platform") {
+    const { createPlatformSolanaKitAdapter } = await import("@/lib/platform-solana-kit-signer");
+    onStatusMessage?.("Preparing Solana mint…");
+    const adapter = await createPlatformSolanaKitAdapter(mintSigner.sponsorAddress);
+    return { adapter, address: mintSigner.sponsorAddress };
+  }
+
+  const phantom = getPhantomProvider();
+  if (!phantom) {
+    throw new Error(
+      "Phantom is required to complete the Solana mint step. Install Phantom, or pay on Solana Devnet directly."
+    );
+  }
+  onStatusMessage?.("Connecting Phantom for Solana mint…");
+  const connectRes = await phantom.connect();
+  const addr = connectRes?.publicKey?.toString?.() ?? phantom.publicKey?.toString?.();
+  if (!addr) throw new Error("Could not read Phantom address.");
+
+  const adapter = await createSolanaKitAdapterFromProvider({
+    provider: phantom,
+    getRpc: () => createSolanaRpc(solanaRpcUrl()),
+  });
+  return { adapter, address: addr };
+}
+
+/** Run CCTP bridge from MetaMask source chain → Solana settlement */
 function formatBridgeError(
   message: string,
   fromChain: SupportedChainId,
@@ -263,18 +338,45 @@ function formatBridgeError(
   if (/Insufficient gas/i.test(message)) {
     return `You need a small amount of ETH (or native gas token) on ${chainName(fromChain)} to pay network fees, in addition to your USDC.`;
   }
+  if (/does not support forwarding/i.test(message)) {
+    return `This route cannot use automatic relay to ${SETTLEMENT_CHAIN_LABEL}. Refresh the page and try again — you should be prompted to sign the Solana mint with Circle or Phantom.`;
+  }
+  if (/fee payer|Failed to create ATA/i.test(message)) {
+    if (message.includes("PLATFORM_SOL_PRIVATE_KEY")) return message;
+    return (
+      `Solana USDC account setup failed. Ensure PLATFORM_SOL_PRIVATE_KEY is set and funded with devnet SOL, ` +
+      `refresh the dashboard, then retry. (${message})`
+    );
+  }
+  if (/API parameter invalid/i.test(message)) {
+    return (
+      "Circle rejected the Solana mint transaction. Confirm SOL-DEVNET is enabled in Circle Console, " +
+      "ensure your wallet has SOL for fees, then retry. If it persists, sign out and sign in again."
+    );
+  }
+  if (/fee payer|does not match your Circle wallet/i.test(message)) {
+    return message;
+  }
+  if (/Transaction is \d+ bytes/i.test(message)) {
+    return message;
+  }
   return message;
 }
 
 export async function runInboundBridge(params: RunInboundBridgeParams): Promise<LiveBridgeStep[]> {
   const {
     fromChain,
-    recipientArcAddress,
+    recipientSolanaAddress,
     amount,
     walletProvider: existingProvider,
+    mintSigner = { kind: "phantom" },
     onStepUpdate,
     onStatusMessage,
   } = params;
+  const settlementAddress = recipientSolanaAddress;
+  if (!settlementAddress) {
+    throw new Error("Missing recipient Solana address.");
+  }
 
   let nativeEth: number | undefined;
 
@@ -330,6 +432,42 @@ export async function runInboundBridge(params: RunInboundBridgeParams): Promise<
 
   onStatusMessage?.("Confirm in MetaMask when prompted…");
 
+  if (mintSigner.kind === "circle-w3s" || mintSigner.kind === "platform") {
+    onStatusMessage?.("Preparing USDC account on Solana…");
+    try {
+      const ataRes = await fetch("/api/solana/ensure-payment-ata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: settlementAddress }),
+      });
+      const ataBody = await ataRes.json().catch(() => ({}));
+      if (!ataRes.ok) {
+        throw new Error(String(ataBody.error ?? "Could not prepare USDC account"));
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not prepare USDC account";
+      throw new Error(msg);
+    }
+  }
+
+  if (mintSigner.kind === "circle-w3s") {
+    onStatusMessage?.("Checking Solana gas balance…");
+    try {
+      await fetch("/api/solana/gas-sponsor", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: settlementAddress }),
+      });
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  const { adapter: toAdapter, address: solanaMintSignerAddress } =
+    await createInboundSolanaMintAdapter(mintSigner, onStatusMessage);
+
   const collected: LiveBridgeStep[] = [];
 
   const pushSteps = (active?: string) => {
@@ -337,6 +475,13 @@ export async function runInboundBridge(params: RunInboundBridgeParams): Promise<
   };
 
   const kit = new AppKit();
+
+  const mintWalletLabel =
+    mintSigner.kind === "circle-w3s"
+      ? "Circle"
+      : mintSigner.kind === "platform"
+        ? "Settlor"
+        : "Phantom";
 
   kit.on("*", (payload: any) => {
     const name = payload?.method?.replace("bridge.", "") ?? "unknown";
@@ -355,19 +500,22 @@ export async function runInboundBridge(params: RunInboundBridgeParams): Promise<
       onStatusMessage?.(
         name === "approve" || name === "burn"
           ? "Confirm in MetaMask…"
-          : `Step: ${name}`
+          : name === "mint"
+            ? `Confirm Solana mint in ${mintWalletLabel}…`
+            : `Step: ${name}`
       );
     }
     pushSteps(state === "pending" ? name : undefined);
   });
 
+  // Solana Devnet: destination forwarder is unsupported — mint is signed via Solana adapter.
   const result = await kit.bridge({
     from: { adapter: fromAdapter, chain: fromChain as any },
     to: {
-      adapter: fromAdapter,
-      chain: "Arc_Testnet" as any,
-      recipientAddress: recipientArcAddress,
-      useForwarder: true,
+      adapter: toAdapter,
+      chain: SETTLEMENT_CHAIN_ID as any,
+      address: solanaMintSignerAddress,
+      recipientAddress: settlementAddress,
     },
     amount,
   });
@@ -423,79 +571,116 @@ const ERC20_TRANSFER_ABI = [
   },
 ] as const;
 
-/** Send USDC on Arc Testnet directly from MetaMask (no CCTP). */
-export async function runArcDirectTransfer(params: {
-  recipientArcAddress: string;
+function getPhantomProvider(): any {
+  if (typeof window === "undefined") return null;
+  const w = window as any;
+  return w.phantom?.solana ?? w.solana ?? null;
+}
+
+export function hasPhantomWallet(): boolean {
+  return !!getPhantomProvider();
+}
+
+/** SPL USDC transfer on Solana via Phantom (no CCTP). */
+export async function runSolanaDirectTransfer(params: {
+  recipientSolanaAddress: string;
   amount: string;
   onStatusMessage?: (message: string) => void;
 }): Promise<LiveBridgeStep[]> {
-  const { recipientArcAddress, amount, onStatusMessage } = params;
+  const { recipientSolanaAddress, amount, onStatusMessage } = params;
+  const phantom = getPhantomProvider();
+  if (!phantom) {
+    throw new Error(
+      "Phantom wallet not detected. Install Phantom, or pay from an EVM testnet via MetaMask."
+    );
+  }
 
-  onStatusMessage?.("Connecting wallet…");
-  const { accounts, provider } = await connectWallet();
+  onStatusMessage?.("Connecting Phantom…");
+  const connectRes = await phantom.connect();
+  const payer = connectRes?.publicKey?.toString?.() ?? phantom.publicKey?.toString?.();
+  if (!payer) throw new Error("Could not read Phantom address.");
 
-  onStatusMessage?.("Switching to Arc Testnet…");
-  await switchWalletChain(provider, "Arc_Testnet");
+  const {
+    Connection,
+    PublicKey,
+    Transaction,
+  } = await import("@solana/web3.js");
+  const {
+    createAssociatedTokenAccountInstruction,
+    createTransferInstruction,
+    getAssociatedTokenAddress,
+  } = await import("@solana/spl-token");
 
-  const { createWalletClient, createPublicClient, custom, parseUnits, defineChain } =
-    await import("viem");
+  const { solanaRpcUrl } = await import("@/lib/solana-config");
+  const connection = new Connection(solanaRpcUrl(), "confirmed");
+  const mint = new PublicKey(USDC_MINT);
+  const payerPk = new PublicKey(payer);
+  const recipientPk = new PublicKey(recipientSolanaAddress);
+  const amountNum = parseFloat(amount);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) {
+    throw new Error("Enter a valid amount.");
+  }
+  const rawAmount = BigInt(Math.round(amountNum * 10 ** USDC_DECIMALS));
 
-  const arcTestnet = defineChain({
-    id: 5042002,
-    name: "Arc Testnet",
-    nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-    rpcUrls: { default: { http: ["https://rpc.testnet.arc.network"] } },
+  onStatusMessage?.("Preparing USDC transfer…");
+  const fromAta = await getAssociatedTokenAddress(mint, payerPk);
+  const fromInfo = await connection.getAccountInfo(fromAta);
+  if (!fromInfo) {
+    throw new Error(
+      "No USDC in this Phantom wallet. Get devnet USDC from faucet.circle.com, then retry."
+    );
+  }
+
+  const toAta = await getAssociatedTokenAddress(mint, recipientPk);
+  const instructions = [];
+  const toInfo = await connection.getAccountInfo(toAta);
+  if (!toInfo) {
+    instructions.push(
+      createAssociatedTokenAccountInstruction(payerPk, toAta, recipientPk, mint)
+    );
+  }
+  instructions.push(createTransferInstruction(fromAta, toAta, payerPk, rawAmount));
+
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  const tx = new Transaction({
+    feePayer: payerPk,
+    blockhash,
+    lastValidBlockHeight,
   });
+  for (const ix of instructions) tx.add(ix);
 
-  const account = accounts[0] as `0x${string}`;
-  const walletClient = createWalletClient({
-    chain: arcTestnet,
-    transport: custom(provider),
-    account,
+  onStatusMessage?.("Confirm in Phantom…");
+  const signed = await phantom.signTransaction(tx);
+  const signature = await connection.sendRawTransaction(signed.serialize(), {
+    skipPreflight: false,
   });
-  const publicClient = createPublicClient({
-    chain: arcTestnet,
-    transport: custom(provider),
-  });
-
-  const value = parseUnits(amount, 6);
-  onStatusMessage?.("Confirm USDC transfer in MetaMask…");
-
-  const hash = await walletClient.writeContract({
-    address: ARC_USDC_ADDRESS,
-    abi: ERC20_TRANSFER_ABI,
-    functionName: "transfer",
-    args: [recipientArcAddress as `0x${string}`, value],
-  });
-
-  onStatusMessage?.("Waiting for confirmation…");
-  await publicClient.waitForTransactionReceipt({ hash });
+  await connection.confirmTransaction(signature, "confirmed");
 
   return [
     {
-      name: "arc_transfer",
+      name: "sol_transfer",
       state: "success",
-      explorerUrl: arcTxExplorerUrl(hash),
+      explorerUrl: solanaExplorerTxUrl(signature),
     },
   ];
 }
 
-export function isArcDirectChain(chain: SupportedChainId): boolean {
-  return chain === "Arc_Testnet";
+export function isSolanaDirectChain(chain: SupportedChainId): boolean {
+  return chain === "Solana_Devnet" || chain === "Solana";
 }
 
 export type RunOutboundBridgeParams = {
   toChain: SupportedChainId;
   recipientAddress: string;
   amount: string;
-  arcAddress: string;
+  solanaAddress: string;
   walletId: string;
   sdkRef: { current: import("@circle-fin/w3s-pw-web-sdk").W3SSdk | null };
   onStepUpdate: (steps: LiveBridgeStep[], activeStep?: string) => void;
   onStatusMessage?: (message: string) => void;
 };
 
-/** Minimum USDC for Arc → other chain (CCTP maxFee must be less than amount). */
+/** Minimum USDC for Solana → other chain (CCTP maxFee must be less than amount). */
 export const MIN_CROSS_CHAIN_TRANSFER_USD = 3;
 
 /** Use standard (SLOW) CCTP on smaller transfers to keep protocol maxFee below amount. */
@@ -506,7 +691,7 @@ export function assertMinCrossChainTransferAmount(amount: string): void {
   if (!Number.isFinite(amountNum) || amountNum < MIN_CROSS_CHAIN_TRANSFER_USD) {
     throw new Error(
       `Minimum cross-chain transfer is $${MIN_CROSS_CHAIN_TRANSFER_USD} USDC. ` +
-        `Use Arc Testnet for smaller payments.`
+        `Use ${SETTLEMENT_CHAIN_LABEL} for smaller payments.`
     );
   }
 }
@@ -530,7 +715,7 @@ function formatOutboundBridgeError(
   if (/max fee must be less than amount/i.test(message)) {
     return (
       `Amount too small to bridge $${amount} to ${chainName(toChain)}. ` +
-      `Protocol fees must be less than the transfer amount. Try at least $${MIN_CROSS_CHAIN_TRANSFER_USD} USDC, or pay on Arc Testnet for small amounts.`
+      `Protocol fees must be less than the transfer amount. Try at least $${MIN_CROSS_CHAIN_TRANSFER_USD} USDC, or pay on ${SETTLEMENT_CHAIN_LABEL} for small amounts.`
     );
   }
   if (/Simulation failed/i.test(message)) {
@@ -540,8 +725,8 @@ function formatOutboundBridgeError(
 }
 
 /**
- * Arc (Circle login wallet) → external testnet via CCTP.
- * Runs in the browser: signs with your Circle wallet popup, mints via Circle forwarder.
+ * Solana (Circle wallet) → external chain via CCTP.
+ * Signs with Circle W3S + App Kit forwarder.
  */
 export async function runOutboundBridge(
   params: RunOutboundBridgeParams
@@ -550,18 +735,22 @@ export async function runOutboundBridge(
     toChain,
     recipientAddress,
     amount,
-    arcAddress,
+    solanaAddress,
     walletId,
     sdkRef,
     onStepUpdate,
     onStatusMessage,
   } = params;
 
+  const fromAddress = solanaAddress;
+  if (!fromAddress) throw new Error("Missing Solana wallet address.");
+
   onStatusMessage?.("Preparing cross-chain transfer…");
 
-  const { createW3sEthereumProvider } = await import("@/lib/w3s-ethereum-provider");
-  const provider = createW3sEthereumProvider({
-    arcAddress: arcAddress as `0x${string}`,
+  const { createW3sSolanaKitAdapter } = await import("@/lib/w3s-solana-kit-signer");
+
+  const fromAdapter = await createW3sSolanaKitAdapter({
+    solanaAddress: fromAddress,
     walletId,
     sdkRef,
   });
@@ -577,14 +766,7 @@ export async function runOutboundBridge(
   }
   assertMinCrossChainTransferAmount(amount);
 
-  const { createViemAdapterFromProvider } = await import("@circle-fin/adapter-viem-v2");
   const { AppKit, TransferSpeed } = await import("@circle-fin/app-kit");
-  const { createBridgePublicClient } = await import("@/lib/evm-gas-buffer");
-  const fromAdapter = await createViemAdapterFromProvider({
-    provider: provider as any,
-    capabilities: { addressContext: "developer-controlled" },
-    getPublicClient: ({ chain }) => createBridgePublicClient(chain, "Arc_Testnet"),
-  });
 
   const bridgeConfig =
     amountNum < SLOW_TRANSFER_BELOW_USD
@@ -594,8 +776,8 @@ export async function runOutboundBridge(
   const bridgeParams = {
     from: {
       adapter: fromAdapter,
-      chain: "Arc_Testnet",
-      address: arcAddress,
+      chain: SETTLEMENT_CHAIN_ID,
+      address: fromAddress,
     },
     to: {
       chain: toChain,
