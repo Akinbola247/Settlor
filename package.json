@@ -1,5 +1,5 @@
 {
-  "name": "ipayx",
+  "name": "settlor",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,7 +19,9 @@
     "@circle-fin/w3s-pw-web-sdk": "^1.1.11",
     "@prisma/client": "6.19.0",
     "@solana/kit": "^6.5.0",
+    "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
     "clsx": "^2.1.1",
     "cookies-next": "^6.1.1",
     "date-fns": "^4.2.1",
